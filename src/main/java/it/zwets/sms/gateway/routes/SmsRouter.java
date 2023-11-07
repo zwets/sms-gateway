@@ -40,15 +40,32 @@ public class SmsRouter extends RouteBuilder {
             .setProperty(Constants.OUT_FIELD_CLIENT_ID, simple("${body.clientId}"))
             .choice()
                 .when(isExpired)
-                    .bean("responseMaker", "expired")
-                    .to(kafkaOut)
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_EXPIRED))
+                    .to("direct:respond")
                 .when(simple("${body.clientId} == 'test'"))
                     .to("direct:test")
                 .otherwise()
-                    .bean("responseMaker", "invalid(*, -1, 'Unknown UKNOWN')")
-                    .to(kafkaOut);
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_INVALID))
+                    .setProperty(Constants.OUT_FIELD_ERROR_CODE, constant(-1))
+                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("Only client 'test' is supported for now."))
+                    .to("direct:respond");
                     
+        from("direct:respond")
+            .process("responseMaker")
+            .marshal().json()
+            .to(kafkaOut);
+
         from("direct:test")
-            .log("TEST");
+            .choice()
+                .when(simple("${body.message.contains('S0D0')}"))
+                    .log("SODO: not sending anything")
+                .when(simple("${body.message.contains('S1D0')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
+                    .to("direct:respond")
+                .when(simple("${body.message.contains('S0D1')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
+                    .to("direct:respond")
+                .otherwise()
+                    .log("TEST: no marker found in incoming");
     }
 }

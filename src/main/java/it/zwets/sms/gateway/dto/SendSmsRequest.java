@@ -1,7 +1,5 @@
 package it.zwets.sms.gateway.dto;
 
-import java.time.Instant;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;

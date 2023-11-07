@@ -56,7 +56,7 @@ public class SmsGatewayConfiguration {
         
         // Values for OUT_FIELD_SMS_STATUS
         
-        public static final String SMS_STATUS_RELAYED = "RELAYED";
+        public static final String SMS_STATUS_SENT = "SENT";
         public static final String SMS_STATUS_DELIVERED = "DELIVERED";
         public static final String SMS_STATUS_EXPIRED = "EXPIRED";
         public static final String SMS_STATUS_FAILED = "FAILED";        // failed now but may go
