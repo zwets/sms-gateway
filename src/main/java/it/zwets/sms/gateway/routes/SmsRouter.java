@@ -55,6 +55,10 @@ public class SmsRouter extends RouteBuilder {
             .marshal().json()
             .to(kafkaOut);
 
+        from("direct:delayed-respond")
+            .delay(1500)
+            .to("direct:respond");
+        
         from("direct:test")
             .choice()
                 .when(simple("${body.message.contains('S0D0')}"))
@@ -65,6 +69,24 @@ public class SmsRouter extends RouteBuilder {
                 .when(simple("${body.message.contains('S0D1')}"))
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
                     .to("direct:respond")
+                .when(simple("${body.message.contains('S1D1')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
+                    .to("direct:respond")
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
+                    .to("direct:delayed-respond")
+                .when(simple("${body.message.contains('S2D1')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
+                    .to("direct:respond")
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
+                    .to("direct:delayed-respond")
+                .when(simple("${body.message.contains('D1S1')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
+                    .to("direct:respond")
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
+                    .to("direct:delayed-respond")
+                .when(simple("${body.message.contains('FAIL')}"))
+                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
+                    .to("direct:delayed-respond")
                 .otherwise()
                     .log("TEST: no marker found in incoming");
     }
