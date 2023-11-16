@@ -2,7 +2,6 @@ package it.zwets.sms.gateway;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.endpoint.StaticEndpointBuilders;
 import org.apache.camel.builder.endpoint.dsl.KafkaEndpointBuilderFactory.KafkaEndpointConsumerBuilder;
 import org.apache.camel.builder.endpoint.dsl.KafkaEndpointBuilderFactory.KafkaEndpointProducerBuilder;
@@ -11,8 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import it.zwets.sms.gateway.util.ResponseMaker;
 
 /**
  * Application configuration.
@@ -65,11 +62,6 @@ public class SmsGatewayConfiguration {
         return kafkaOutBuilder.resolve(camelContext);
     }
     
-    @Bean(Constants.BEAN_RESPONSE_MAKER)
-    public Processor getResponseMaker() {
-        return new ResponseMaker();
-    }
-
     /**
      * Defines string constants (field names etc)
      */
@@ -81,10 +73,6 @@ public class SmsGatewayConfiguration {
         public static final String ENDPOINT_FRONTEND_RESPONSE = "frontEndResponse";
         public static final String ENDPOINT_BACKEND_REQUEST = "backEndRequest";
         public static final String ENDPOINT_BACKEND_RESPONSE = "backEndResponse";
-        
-        // Our processors
-        
-        public static final String BEAN_RESPONSE_MAKER = "reponseMaker";
         
         // Incoming message fields
         
@@ -98,7 +86,6 @@ public class SmsGatewayConfiguration {
         public static final String OUT_FIELD_CORREL_ID = "correl-id";
         public static final String OUT_FIELD_CLIENT_ID = "client-id";
         public static final String OUT_FIELD_SMS_STATUS = "sms-status";
-        public static final String OUT_FIELD_ERROR_CODE = "error-code";
         public static final String OUT_FIELD_ERROR_TEXT = "error-text";
         
         // Values for OUT_FIELD_SMS_STATUS

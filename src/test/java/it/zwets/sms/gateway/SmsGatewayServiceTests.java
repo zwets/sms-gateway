@@ -10,7 +10,7 @@ import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
-import org.apache.camel.test.spring.junit5.MockEndpoints;
+import org.apache.camel.test.spring.junit5.DisableJmx;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,16 +20,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.dto.SendSmsRequest;
 import it.zwets.sms.gateway.routes.SmsRouter;
+import it.zwets.sms.gateway.util.RequestValidator;
+import it.zwets.sms.gateway.util.ResponseProducer;
 
-@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class})
+@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, RequestValidator.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
-@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
+//@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
+@DisableJmx
+//@ExcludeRoutes(SmsRouter.class)
 class SmsGatewayServiceTests {
-
     
     private static String CORREL_ID = "my-correl-id";
     private static String CLIENT_ID = "test";
+    private static String MESSAGE = "DummyMessage";
     
     @Autowired
     CamelContext context;
@@ -69,7 +73,7 @@ class SmsGatewayServiceTests {
         // General (non client-dependent) tests
     
     @Test
-    public void noResponseOnNoJson() throws InterruptedException {
+    public void noResponseOnNonJson() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
@@ -80,16 +84,65 @@ class SmsGatewayServiceTests {
     }
     
     @Test
-    public void whatResponseOnNoJson() throws InterruptedException {
+    public void noResponseOnEmptyJson() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
         
-        template.sendBody("{ }");
+        template.sendBody(new SendSmsRequest(null, null, null, null));
         
         response.assertIsSatisfied();
     }
     
+    @Test
+    public void noResponseOnMissingClientId() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(0);
+        
+        template.sendBody(new SendSmsRequest(null, CORREL_ID, makeDeadline(100), MESSAGE));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void noResponseOnMissingCorrelId() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(0);
+        
+        template.sendBody(new SendSmsRequest(CLIENT_ID, null, makeDeadline(100), MESSAGE));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void errorOnMissingDeadline() throws InterruptedException {
+
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+        
+        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, null, MESSAGE));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void errorOnMissingMessage() throws InterruptedException {
+
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+        
+        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(100), null));
+        
+        response.assertIsSatisfied();
+    }
 
     @Test
     public void expiredOnArrival() throws InterruptedException {
@@ -98,7 +151,6 @@ class SmsGatewayServiceTests {
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
-        response.message(0).jsonpath("$['error-code']").isEqualTo(0);
         response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
         
         template.sendBody(makeSmsRequest(Instant.now().minusMillis(100), "no content"));
@@ -107,9 +159,9 @@ class SmsGatewayServiceTests {
     }
     
     @Test
-    public void invalidDeadlineOsExpired() throws InterruptedException {
+    public void invalidDeadline() throws InterruptedException {
         response.expectedMessageCount(1);
-        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         
         template.sendBody(makeSmsRequest("this-is-not-iso-8601", "S1D1"));
         
@@ -131,7 +183,7 @@ class SmsGatewayServiceTests {
     
 
     private SendSmsRequest makeSmsRequest(String deadline, String message) {
-        return new SendSmsRequest(CORREL_ID, CLIENT_ID, deadline, message);
+        return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, message);
     }
 
     private SendSmsRequest makeSmsRequest(Instant deadline, String message) {
@@ -139,6 +191,10 @@ class SmsGatewayServiceTests {
     }
 
     private SendSmsRequest makeSmsRequest(String message) {
-        return makeSmsRequest(Instant.now().plusMillis(100), message);
+        return makeSmsRequest(makeDeadline(100), message);
+    }
+    
+    private String makeDeadline(int millis) {
+        return Instant.now().plusMillis(millis).toString();
     }
 }

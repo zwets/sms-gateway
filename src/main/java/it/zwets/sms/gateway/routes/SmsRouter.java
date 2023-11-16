@@ -1,26 +1,20 @@
 package it.zwets.sms.gateway.routes;
 
-import java.time.Instant;
-
-import org.apache.camel.BeanInject;
 import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
-import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
-import org.apache.camel.Predicate;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
-import it.zwets.sms.gateway.dto.SendSmsRequest;
+import it.zwets.sms.gateway.util.RequestValidator;
+import it.zwets.sms.gateway.util.ResponseProducer;
 
 @Component
 public class SmsRouter extends RouteBuilder {
     
-    private static final Logger LOG = LoggerFactory.getLogger(SmsRouter.class);    
+//    private static final Logger LOG = LoggerFactory.getLogger(SmsRouter.class);    
 
     @EndpointInject(Constants.ENDPOINT_FRONTEND_REQUEST)
     private Endpoint frontIn;
@@ -28,8 +22,11 @@ public class SmsRouter extends RouteBuilder {
     @EndpointInject(Constants.ENDPOINT_FRONTEND_RESPONSE)
     private Endpoint frontOut;
 
-    @BeanInject(Constants.BEAN_RESPONSE_MAKER)
-    private Processor responseMaker;
+    @Autowired
+    private RequestValidator requestValidator;
+    
+    @Autowired
+    private ResponseProducer responseProducer;
     
 //    @EndpointInject("backEndRequest")
 //    private Endpoint backOut;
@@ -37,60 +34,38 @@ public class SmsRouter extends RouteBuilder {
 //    @EndpointInject("backEndResponse")
 //    private Endpoint backIn;
     
-    private Predicate isExpired = new Predicate() {
-        @Override public boolean matches(Exchange exchange) {
-            try {
-                return Instant.parse(exchange.getIn().getBody(SendSmsRequest.class).deadline()).isBefore(Instant.now());
-            }
-            catch(Exception e) {
-                LOG.error("Invalid deadline value (returning EXPIRED): {}", exchange.getIn().getBody(SendSmsRequest.class).deadline());
-                return true;
-            }
-        }
-    };
-
     @Override
     public void configure() throws Exception {
         
 //        Predicate client = bodyAs(SendSmsRequest.class);
 //        validator().type("incoming").withJava(IncomingValidator.class);
-        
+
+        // todo: make finer grained, set retry (if backend-related) etc
+        // see: https://camel.apache.org/manual/exception-clause.html
         onException(Throwable.class).routeId("exception")
-            .log("Exception occurred")
+            .log("Exception occurred: ${exception.message}")
             .handled(true)
-            .choice()
-                .when(e -> e.getProperty(Constants.OUT_FIELD_CORREL_ID) != null)
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
-                    .setProperty(Constants.OUT_FIELD_ERROR_CODE, constant(-1))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("an exception occurred while handling request"))
-                    .to("direct:respond");
+            .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
+            .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("an exception occurred while handling request"))
+            .to("direct:respond");
         
         from(frontIn).routeId("main")
-            .log("REQUEST: ${body}")
-            .unmarshal().json(SendSmsRequest.class)
-            .setProperty(Constants.OUT_FIELD_CORREL_ID, simple("${body.correlId}"))
-            .setProperty(Constants.OUT_FIELD_CLIENT_ID, simple("${body.clientId}"))
-            .setProperty(Constants.OUT_FIELD_ERROR_CODE, constant(0))
+            .log(LoggingLevel.DEBUG, "Main route starting with request: ${body}")
+            .process(requestValidator)
             .choice()
-                .when(simple("${body.clientId} == null"))
-                    .log(LoggingLevel.ERROR, "Request lacks client ID, dropping")
-                .when(simple("${body.correlId} == null"))
-                    .log(LoggingLevel.ERROR, "Request lacks correlation ID, dropping")
-                .when(isExpired)
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_EXPIRED))
+                .when(e -> e.getProperty(Constants.OUT_FIELD_SMS_STATUS) != null)
                     .to("direct:respond")
                 .when(simple("${body.clientId} == 'test'"))
                     .to("direct:test")
                 .otherwise()
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_INVALID))
-                    .setProperty(Constants.OUT_FIELD_ERROR_CODE, constant(-1))
                     .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("Only client 'test' is supported for now."))
                     .to("direct:respond");
                     
         from("direct:respond").routeId("response")
-            .process(responseMaker)
+            .process(responseProducer)
+            .filter(e -> e.getProperty(Constants.OUT_FIELD_CLIENT_ID) != null && e.getProperty(Constants.OUT_FIELD_CORREL_ID) != null)
             .marshal().json()
-            .log("RESPONSE: ${body}")
             .to(frontOut);
 
         from("direct:delayed-respond").routeId("delay")
@@ -151,7 +126,6 @@ public class SmsRouter extends RouteBuilder {
                 .otherwise()
                     .log("TEST: no marker found in incoming")
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_INVALID))
-                    .setProperty(Constants.OUT_FIELD_ERROR_CODE, constant(-1))
                     .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("Test message without S1D1 or other token"))
                     .to("direct:respond");
     }

@@ -2,16 +2,12 @@ package it.zwets.sms.gateway;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
-import org.apache.camel.Processor;
-import org.apache.camel.Producer;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
-import it.zwets.sms.gateway.dto.SmsStatusResponse;
-import it.zwets.sms.gateway.util.ResponseMaker;
 
 @Configuration
 public class MockConfiguration {
@@ -55,16 +51,6 @@ public class MockConfiguration {
     @Bean(Constants.ENDPOINT_FRONTEND_RESPONSE)
     public Endpoint getFrontEndResponseEndpoint(CamelContext camelContext) {
         return camelContext.getEndpoint("direct:mock-kafka-out");
-    }
-
-    /**
-     * Need to provide the beans that the "real" configuration also has (as
-     * we are overriding it).
-     * @return the same reponseMaker bean is in the real config
-     */
-    @Bean(Constants.BEAN_RESPONSE_MAKER)
-    public Processor getResponseMaker() {
-        return new ResponseMaker();
     }
 
     /**
