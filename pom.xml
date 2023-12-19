@@ -5,7 +5,7 @@
    <parent>
       <groupId>org.apache.camel.springboot</groupId>
       <artifactId>spring-boot</artifactId>
-      <version>4.0.2</version>
+      <version>4.0.3</version>
       <relativePath/> <!-- lookup parent from repository -->
    </parent>
    <groupId>it.zwets</groupId>
@@ -56,9 +56,8 @@
       <artifactId>camel-direct-starter</artifactId>
    </dependency>
    <dependency>
-      <groupId>org.apache.camel</groupId>
-      <artifactId>camel-endpointdsl</artifactId>
-      <version>${camel-version}</version>
+      <groupId>org.apache.camel.springboot</groupId>
+      <artifactId>camel-endpointdsl-starter</artifactId>
    </dependency>
    <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -90,22 +89,6 @@
          <artifactId>spring-boot-starter-security</artifactId>
          <scope>provided</scope>
       </dependency>
-      <dependency>
-         <groupId>org.springframework.boot</groupId>
-         <artifactId>spring-boot-starter-web</artifactId>
-         <scope>provided</scope>
-      </dependency>
-      <dependency>
-         <groupId>org.springframework.boot</groupId>
-         <artifactId>spring-boot-starter-tomcat</artifactId>
-         <scope>provided</scope>
-      </dependency>
-      dependency>
-         <groupId>org.springframework.security</groupId>
-         <artifactId>spring-security-test</artifactId>
-         <scope>test</scope>
-      </dependency -->
-<!--
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
             <artifactId>camel-dynamic-router-starter</artifactId>
@@ -119,16 +102,6 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <scope>test</scope>
-        </dependency>
         -->
    </dependencies>
    <build>
@@ -136,7 +109,7 @@
          <plugin>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
-	    <version>${spring-boot-version}</version>
+            <version>${spring-boot-version}</version>
             <executions>
                <execution>
                   <goals>
@@ -145,7 +118,7 @@
                </execution>
             </executions>
          </plugin>
-         <plugin>
+         <!-- plugin>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-package-maven-plugin</artifactId>
             <version>${camel-version}</version>
@@ -158,7 +131,7 @@
                   <phase>process-classes</phase>
                </execution>
             </executions>
-         </plugin>
+         </plugin -->
       </plugins>
    </build>
 </project>

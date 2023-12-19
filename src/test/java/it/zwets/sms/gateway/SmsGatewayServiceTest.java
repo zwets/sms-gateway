@@ -26,10 +26,10 @@ import it.zwets.sms.gateway.util.ResponseProducer;
 @SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, RequestValidator.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
-//@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
 @DisableJmx
 //@ExcludeRoutes(SmsRouter.class)
-class SmsGatewayServiceTests {
+//@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
+public class SmsGatewayServiceTest {
     
     private static String CORREL_ID = "my-correl-id";
     private static String CLIENT_ID = "test";

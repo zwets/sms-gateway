@@ -42,7 +42,7 @@ public class RequestValidator implements Processor {
             req = mapper.readValue(exchange.getIn().getBody(String.class), SendSmsRequest.class);
             
             if (req.clientId() == null) {
-                exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Client ID");
+                exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Client ID field");
             }
             else if (req.correlId() == null) {
                 exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Correlation ID field");
@@ -50,8 +50,8 @@ public class RequestValidator implements Processor {
             else { // we have enough to produce a response
                 exchange.setProperty(Constants.OUT_FIELD_CLIENT_ID, req.clientId());
                 exchange.setProperty(Constants.OUT_FIELD_CORREL_ID, req.correlId());
-                if (req.message() == null) {
-                    exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Message field");
+                if (req.payload() == null) {
+                    exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Payload field");
                 }
                 else if (req.deadline() == null) {
                     exchange.setProperty(Constants.OUT_FIELD_ERROR_TEXT, "Request lacks Deadline field");

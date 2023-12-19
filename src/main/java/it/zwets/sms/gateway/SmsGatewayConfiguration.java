@@ -79,7 +79,7 @@ public class SmsGatewayConfiguration {
         public static final String IN_FIELD_CORREL_ID = "correl-id";
         public static final String IN_FIELD_CLIENT_ID = "client-id";
         public static final String IN_FIELD_DEADLINE = "deadline";
-        public static final String IN_FIELD_MESSAGE = "message";
+        public static final String IN_FIELD_PAYLOAD = "payload";
 
         // Outgoing message fields
         

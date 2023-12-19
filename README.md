@@ -45,10 +45,41 @@ The SMS Gateway consumes from an incoming Kafka topic `send-sms` and produces
 status updates on an outgoing topic `sms-status`.  It is built on top of
 [Apache Camel](https://camel.apache.org).
 
+#### Request
 
-#### License
+Request messages on topic `send-sms` must have this JSON structure:
 
-sms-gateway - Backend for the SMS Scheduler
+```json
+{
+    "client-id": the ID of the client (tenant), e.g. "test",
+    "correl-id": unique ID assigned by the client, to correlate response
+    "deadline": timestamp before which the message must be sent
+    "payload": the encrypted message 
+}
+```
+
+#### Response
+
+Response messages on topic `sms-status` have this JSON structure:
+
+```json
+{
+    "client-id": client ID from request
+    "correl-id": correlation ID from request
+    "error-text": optional field with error description
+    "sms-status": SENT, DELIVERED, EXPIRED, FAILED, INVALID
+}
+```
+
+
+## Running
+
+@TODO@ see the `scripts` directory.
+
+
+#### Licence
+
+sms-gateway - Backend for the SMS Scheduler  
 Copyright (C) 2023  Marco van Zwetselaar
 
 This program is free software: you can redistribute it and/or modify

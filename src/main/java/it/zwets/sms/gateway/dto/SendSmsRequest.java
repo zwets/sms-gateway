@@ -11,4 +11,4 @@ public record SendSmsRequest(
     @JsonProperty(Constants.IN_FIELD_CLIENT_ID) String clientId,
     @JsonProperty(Constants.IN_FIELD_CORREL_ID) String correlId,
     @JsonProperty(Constants.IN_FIELD_DEADLINE) String deadline,
-    @JsonProperty(Constants.IN_FIELD_MESSAGE) String message) { }
+    @JsonProperty(Constants.IN_FIELD_PAYLOAD) String payload) { }
