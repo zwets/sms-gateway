@@ -1,0 +1,24 @@
+#!/bin/bash
+
+USAGE="CLIENT CORREL DEADLINE PAYLOAD
+
+  Send an SMS over Kafka
+
+  POSITIONAL PARAMS
+   CLIENT       Client on whose behalf you are sending
+   CORREL       Unique correlation ID within the CLIENT
+   DEADLINE     Time of expiry of the SMS in ISO UTC (date -Is)
+   PAYLOAD      Message to be scheduled"
+
+. "$(dirname "$(realpath "$0")")/lib/common.sh"
+
+(($# == 4)) || usage_exit
+
+CLIENT="$1"
+CORREL="$2"
+DEADLINE="$3"
+PAYLOAD="$4"
+
+printf '{ "client-id": "%s", "correl-id": "%s", "deadline": "%s", "payload": "%s" }\n' \
+	"$CLIENT" "$CORREL" "$DEADLINE" "$PAYLOAD" |
+kcat_send

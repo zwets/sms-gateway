@@ -1,0 +1,19 @@
+#!/bin/bash
+
+export LC_ALL="C"
+set -euo pipefail
+
+USAGE="MESSAGE ...
+
+  Send a test SMS over Kafka, with dummy defaults.
+
+  POSITIONAL PARAMS
+   MESSAGE      Message text (rest of line)"
+
+. "$(dirname "$0")/../lib/common.sh"
+
+[ -n "${1:-}" ] && [ -n "${1%%-*}" ] || usage_exit
+
+NEXT_CENTURY="$(date -Is | sed -Ee 's/0/1/')"
+
+exec "$(dirname "$0")/../send-sms" test test-$$ $NEXT_CENTURY "$*"

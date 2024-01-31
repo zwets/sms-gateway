@@ -1,0 +1,25 @@
+#!/bin/bash
+
+TOPIC='sms-status'
+USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
+
+  Fake a response from the SMS gateway
+
+  POSITIONAL PARAMS
+   CLIENT   Client ID
+   CORREL   Correlation ID
+   STATUS   Status to report back (SENT, etc)
+   ERRTEXT  Optional error text (rest of line)"
+
+. "$(dirname "$0")/../lib/common.sh"
+
+(($# >= 1)) || usage_exit
+
+CLIENT="$1"
+CORREL="$2"
+STATUS="$3"
+(($# >= 4)) && shift 3 && ERRTEXT="$*" || ERRTEXT=""
+ 
+printf '{ "client-id": "%s", "correl-id": "%s", "sms-status": "%s"%s }\n' \
+	"$CLIENT" "$CORREL" "$STATUS" "${ERRTEXT:+, \"error-text\": \"$ERRTEXT\"}" |
+kcat_send

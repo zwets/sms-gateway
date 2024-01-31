@@ -1,4 +1,4 @@
-package it.zwets.sms.gateway.util;
+package it.zwets.sms.gateway.comp;
 
 import java.time.Instant;
 
@@ -17,19 +17,23 @@ import it.zwets.sms.gateway.dto.SendSmsRequest;
 /**
  * Processes incoming requests.
  * 
- * When the <code>process</code> method has completed, either smsStatus is set
- * and we are done, and can (if clientId and correlId are known) send a response,
- * or just stop processing.
+ * When the <code>process</code> method has completed, the exchange property
+ * sms-status will be either:
+ * <ul>
+ *   <li>INVALID, and error-text will be set, and client-id and correl-id MAY be set</li>
+ *   <li>EXPIRED, and client-id and correl-id will be set, no error-text</li>
+ *   <li>unset, and client-id and correl-id will be set, and the in body
+ *       has been replaced by the SendSmsRequest object.</li>
+ * </ul>
  * 
- * The error text may be set (and will be set if status is INVALID), or it will
- * be unset and status is either EXPIRED (which is not an error) or unset.
- * 
- * When unset, the in body has been replaced by the SendSmsRequest object.
+ * When the sms-status is set, we can stop processing an possibly send a
+ * reponse.  If it is not set, we can proceed to process the message, which
+ * is carried as an {@link SendSmsRequest} objecct in the in body.
  */
 @Component
-public class RequestValidator implements Processor {
+public class RequestProcessor implements Processor {
     
-    private static final Logger LOG = LoggerFactory.getLogger(RequestValidator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RequestProcessor.class);
 
     @Override
     public void process(Exchange exchange) {
@@ -60,7 +64,7 @@ public class RequestValidator implements Processor {
                     try {
                         Instant deadline = Instant.parse(req.deadline());
                         if (deadline.isBefore(Instant.now())) {
-                            LOG.error("Request has expired: {}:{}", req.clientId(), req.correlId());
+                            LOG.warn("Request has expired: {}:{}", req.clientId(), req.correlId());
                             exchange.setProperty(Constants.OUT_FIELD_SMS_STATUS, Constants.SMS_STATUS_EXPIRED);
                         }
                         else {

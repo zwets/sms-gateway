@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
-import it.zwets.sms.gateway.util.RequestValidator;
-import it.zwets.sms.gateway.util.ResponseProducer;
+import it.zwets.sms.gateway.comp.RequestProcessor;
+import it.zwets.sms.gateway.comp.ResponseProducer;
 
 @Component
 public class SmsRouter extends RouteBuilder {
@@ -23,7 +23,7 @@ public class SmsRouter extends RouteBuilder {
     private Endpoint frontOut;
 
     @Autowired
-    private RequestValidator requestValidator;
+    private RequestProcessor requestProcessor;
     
     @Autowired
     private ResponseProducer responseProducer;
@@ -51,7 +51,7 @@ public class SmsRouter extends RouteBuilder {
         
         from(frontIn).routeId("main")
             .log(LoggingLevel.DEBUG, "Main route starting with request: ${body}")
-            .process(requestValidator)
+            .process(requestProcessor)
             .choice()
                 .when(e -> e.getProperty(Constants.OUT_FIELD_SMS_STATUS) != null)
                     .to("direct:respond")
@@ -90,6 +90,7 @@ public class SmsRouter extends RouteBuilder {
                     .to("direct:respond")
                     .log("S1DX: responding FAILED instead of DELIVERED")
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
+                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("failed after successful send"))
                     .to("direct:delayed-respond")
                 .when(simple("${body.payload.contains('S1D1')}"))
                     .log("S1D1: responding SENT first")
@@ -115,6 +116,7 @@ public class SmsRouter extends RouteBuilder {
                 .when(simple("${body.payload.contains('DXS1')}"))
                     .log("DXS1: responding FAILED first")
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
+                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("reporting failed before reporting sent"))
                     .to("direct:respond")
                     .log("DXS1: responding SENT after FAILED")
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
@@ -122,6 +124,7 @@ public class SmsRouter extends RouteBuilder {
                 .when(simple("${body.payload.contains('FAIL')}"))
                     .log("FAIL: responding FAILED")
                     .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
+                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("you requested this to FAIL"))
                     .to("direct:delayed-respond")
                 .otherwise()
                     .log("TEST: no marker found in incoming")

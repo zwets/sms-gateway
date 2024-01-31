@@ -18,12 +18,12 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
+import it.zwets.sms.gateway.comp.RequestProcessor;
+import it.zwets.sms.gateway.comp.ResponseProducer;
 import it.zwets.sms.gateway.dto.SendSmsRequest;
 import it.zwets.sms.gateway.routes.SmsRouter;
-import it.zwets.sms.gateway.util.RequestValidator;
-import it.zwets.sms.gateway.util.ResponseProducer;
 
-@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, RequestValidator.class, ResponseProducer.class} /* properties = specific properties */)
+@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, RequestProcessor.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
 @DisableJmx
@@ -169,19 +169,167 @@ public class SmsGatewayServiceTest {
     }
 
     @Test
-    public void happyNornalFlow() throws InterruptedException {
+    public void happyNormalFlow() throws InterruptedException {
         
         response.expectedMessageCount(2);
         
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("S1D1"));
         
         response.assertIsSatisfied();
     }
     
+    @Test
+    public void noResponseS0D0() throws InterruptedException {
+        
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(0);
 
+        template.sendBody(makeSmsRequest("S0D0"));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void oneResponseS0D1() throws InterruptedException {
+        
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
+
+        template.sendBody(makeSmsRequest("S0D1"));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void oneResponseS1D0() throws InterruptedException {
+        
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+
+        template.sendBody(makeSmsRequest("S1D0"));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void twoResponseS1DX() throws InterruptedException {
+        
+        response.expectedMessageCount(2);
+        
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
+        response.message(1).jsonpath("$['error-text']").isNotNull();
+
+        template.sendBody(makeSmsRequest("S1DX"));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void twoResponseS2D0() throws InterruptedException {
+        
+        response.expectedMessageCount(2);
+        
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+
+        template.sendBody(makeSmsRequest("S2D0"));
+        
+        response.assertIsSatisfied();
+    }
+
+    @Test
+    public void inverseOrderD1S1() throws InterruptedException {
+        
+        response.expectedMessageCount(2);
+        
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
+    
+        template.sendBody(makeSmsRequest("D1S1"));
+    
+        response.assertIsSatisfied();
+    }
+
+    @Test
+    public void failThenSentDXS1() throws InterruptedException {
+        
+        response.expectedMessageCount(2);
+        
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+
+        template.sendBody(makeSmsRequest("DXS1"));
+        
+        response.assertIsSatisfied();
+    }
+    
+    @Test
+    public void oneResponseFAIL() throws InterruptedException {
+        
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
+        response.message(0).jsonpath("$['error-text']").isNotNull();        
+
+        template.sendBody(makeSmsRequest("FAIL"));
+        
+        response.assertIsSatisfied();
+    }
+
+    @Test
+    public void invalidOnNoMarker() throws InterruptedException {
+
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+        
+        template.sendBody(makeSmsRequest("Nothing special in the message"));
+        
+        response.assertIsSatisfied();
+    }
+    
     private SendSmsRequest makeSmsRequest(String deadline, String message) {
         return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, message);
     }
