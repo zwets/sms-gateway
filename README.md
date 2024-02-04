@@ -102,7 +102,7 @@ Response messages on topic `sms-status` have this JSON structure:
 
 #### Statuses
 
-Statuses hava the following meaning:
+Statuses have the following meaning:
 
  * `SENT`: the message was successfully passed on to the SMSC
  * `DELIVERED`: the SMSC reported the messages as delivered
@@ -110,17 +110,17 @@ Statuses hava the following meaning:
  * `INVALID`: the request received was invalid (client error)
  * `FAILED`: the SMS could not be sent (server/backend error)
 
-In the normal _happy flow_, the client should expect two responses for every
-request: `SENT` and `DELIVERED`, in that order (but see below).
+In the _happy flow_, the client should expect two responses for every request:
+`SENT` and `DELIVERED`, in that order (but see below).
 
-If you receive `EXPIRED` or `INVALID`, you will not receive further responses
-responses, and can be certain that the message was not sent.  An `EXPIRED`
-request could be retried with a new deadline.  There is no point in retrying
-an `INVALID` request unless you (the client) fixes the issue.
+If you receive `EXPIRED` or `INVALID`, you will not receive further responses,
+and can be certain that the message was not sent.  An `EXPIRED` request could
+be retried with a new deadline.  An `INVALID` request indicates a client error
+and hence cannot be submitted again.
 
-When you receive `FAILED`, this means that _in all likelihood_ the message
-did not reach the recipient, and the gateway will not retry further.  The
-`FAILED` may come after `SENT` and implies non-delivery.
+When you receive `FAILED`, this means that _in all likelihood_ the message did
+not reach the recipient, and the gateway will not retry further.  The `FAILED`
+may come after `SENT` and implies non-delivery.
 
 > In the current implementation you can expect to receive status updates in
 > a sensible order, and to eventually receive at least one status response,
@@ -129,14 +129,13 @@ did not reach the recipient, and the gateway will not retry further.  The
 > **Note** we do not yet have `DELIVERED` notifications from the backend!
 
 
-
 ## Running
 
 @TODO@: see the `scripts` directory.
 
 ### Configuration
 
-@TODO@: document the `application-*.properties` and the vault.
+@TODO@: document the `application-*.properties` and setting up the vault.
 
 
 ## Testing
@@ -146,17 +145,25 @@ did not reach the recipient, and the gateway will not retry further.  The
 
 ## Developing
 
-@TODO@: setting up Eclipse, JUnit
+@TODO@: setting up Eclipse, running unit tests
 
 ### Wasp API
 
-The current release uses the Vodacom "Wasp" API, a simple http POST
-interface.  We have no delivery reports yet.
+The current release uses the Vodacom "Wasp" API, a simple http POST interface.
+We may migrate to SMPP.  We have no delivery reports yet.
 
 
 ### Failover & Retry
 
-@TODO@: describe the round robin failover and retry timings
+Though it can be used on its own, the SMS Gateway was designed in tandem with
+the SMS Scheduler.  The Scheduler manages long-running processes and has all
+facilities for dealing with backend failures, including scheduling retries.
+
+For this reason, the SMS Gateway is configured for "fail-fast" operation: when
+a backend connection is unavailable, it will attempt fail-over routes but with
+limited retries, and then return a `FAILED` response.
+
+#### Documentation
 
  * <https://www.jessym.com/articles/retry-mechanisms-in-apache-camel>
  * <https://camel.apache.org/components/4.0.x/eips/failover-eip.html>
