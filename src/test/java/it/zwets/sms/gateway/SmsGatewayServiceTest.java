@@ -2,7 +2,9 @@ package it.zwets.sms.gateway;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.EndpointInject;
@@ -17,13 +19,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import it.zwets.sms.crypto.PkiUtils;
+import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.ResponseProducer;
 import it.zwets.sms.gateway.dto.SendSmsRequest;
+import it.zwets.sms.gateway.dto.SmsMessage;
 import it.zwets.sms.gateway.routes.SmsRouter;
+import it.zwets.sms.gateway.routes.TestClientRoute;
 
-@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, RequestProcessor.class, ResponseProducer.class} /* properties = specific properties */)
+@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, TestClientRoute.class, RequestProcessor.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
 @DisableJmx
@@ -33,17 +39,20 @@ public class SmsGatewayServiceTest {
     
     private static String CORREL_ID = "my-correl-id";
     private static String CLIENT_ID = "test";
-    private static String MESSAGE = "DummyMessage";
+    private String cachedDummyPayload = null;
     
     @Autowired
     CamelContext context;
+    
+    @Autowired
+    private Vault vault;
     
     @Produce("marshallingFrontEndRequestEndpoint") // defined in MockConfiguration
     private ProducerTemplate template;
 
     @EndpointInject("mockFrontEndResponseEndpoint") // defined in MockConfiguration
     private MockEndpoint response;
-    
+
     @AfterEach
     private void afterEach() {
         response.reset();
@@ -100,7 +109,7 @@ public class SmsGatewayServiceTest {
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
         
-        template.sendBody(new SendSmsRequest(null, CORREL_ID, makeDeadline(100), MESSAGE));
+        template.sendBody(new SendSmsRequest(null, CORREL_ID, makeDeadline(1000), dummyPayload()));
         
         response.assertIsSatisfied();
     }
@@ -111,13 +120,13 @@ public class SmsGatewayServiceTest {
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
         
-        template.sendBody(new SendSmsRequest(CLIENT_ID, null, makeDeadline(100), MESSAGE));
+        template.sendBody(new SendSmsRequest(CLIENT_ID, null, makeDeadline(1000), dummyPayload()));
         
         response.assertIsSatisfied();
     }
     
     @Test
-    public void errorOnMissingDeadline() throws InterruptedException {
+    public void invalidOnMissingDeadline() throws InterruptedException {
 
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
@@ -125,13 +134,13 @@ public class SmsGatewayServiceTest {
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         response.message(0).jsonpath("$['error-text']").isNotNull();
         
-        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, null, MESSAGE));
+        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, null, dummyPayload()));
         
         response.assertIsSatisfied();
     }
     
     @Test
-    public void errorOnMissingMessage() throws InterruptedException {
+    public void invalidOnMissingMessage() throws InterruptedException {
 
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
@@ -139,7 +148,7 @@ public class SmsGatewayServiceTest {
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         response.message(0).jsonpath("$['error-text']").isNotNull();
         
-        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(100), null));
+        template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(1000), null));
         
         response.assertIsSatisfied();
     }
@@ -157,13 +166,30 @@ public class SmsGatewayServiceTest {
         
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void invalidDeadline() throws InterruptedException {
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         
         template.sendBody(makeSmsRequest("this-is-not-iso-8601", "S1D1"));
+        
+        response.assertIsSatisfied();        
+    }
+
+    @Test
+    public void invalidWrongKey() throws InterruptedException {
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        
+        SmsMessage sms = new SmsMessage("I will not be decrypted");
+        sms.setHeader("To", "123456789");
+        sms.setHeader("Sender", "NO SENDER");
+        
+        // This encrypts the payload with that of the 'fail' alias but sends with 'test' client ID
+        SendSmsRequest req = new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(1000), encryptPayload("fail", sms.asBytes()));
+        
+        template.sendBody(req);
         
         response.assertIsSatisfied();        
     }
@@ -329,9 +355,21 @@ public class SmsGatewayServiceTest {
         
         response.assertIsSatisfied();
     }
+
+    // -- Helpers
     
+    private String encryptPayload(String clientId, byte[] bytes) {
+        byte[] encrypted = PkiUtils.encrypt(vault.getPublicKey(clientId), bytes);
+        byte[] base64 = Base64.getEncoder().encode(encrypted);
+        return new String(base64, StandardCharsets.UTF_8);
+    }
+
     private SendSmsRequest makeSmsRequest(String deadline, String message) {
-        return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, message);
+        SmsMessage sms = new SmsMessage(message);
+        sms.setHeader("To", "123456789");
+        sms.setHeader("Sender", "NO SENDER");
+        
+        return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, encryptPayload(CLIENT_ID, sms.asBytes()));
     }
 
     private SendSmsRequest makeSmsRequest(Instant deadline, String message) {
@@ -339,7 +377,17 @@ public class SmsGatewayServiceTest {
     }
 
     private SendSmsRequest makeSmsRequest(String message) {
-        return makeSmsRequest(makeDeadline(100), message);
+        return makeSmsRequest(makeDeadline(1000), message);
+    }
+    
+    private String dummyPayload() {
+        if (cachedDummyPayload == null) {
+            SmsMessage sms = new SmsMessage("Dummy Message");
+            sms.setHeader("To", "123456789");
+            sms.setHeader("Sender", "NO SENDER");
+            cachedDummyPayload = encryptPayload(CLIENT_ID, sms.asBytes());
+        }
+        return cachedDummyPayload;
     }
     
     private String makeDeadline(int millis) {

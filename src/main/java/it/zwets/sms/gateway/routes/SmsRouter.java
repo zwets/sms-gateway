@@ -1,5 +1,12 @@
 package it.zwets.sms.gateway.routes;
 
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CLIENT_ID;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CORREL_ID;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
+
 import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.LoggingLevel;
@@ -8,8 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
+import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.ResponseProducer;
+import it.zwets.sms.gateway.comp.VodaRequestProducer;
+import it.zwets.sms.gateway.comp.VodaResponseProcessor;
+import it.zwets.sms.gateway.dto.VodaResponse;
 
 @Component
 public class SmsRouter extends RouteBuilder {
@@ -22,17 +33,23 @@ public class SmsRouter extends RouteBuilder {
     @EndpointInject(Constants.ENDPOINT_FRONTEND_RESPONSE)
     private Endpoint frontOut;
 
+    @EndpointInject(Constants.ENDPOINT_BACKEND_REQUEST)
+    private Endpoint backend;
+    
     @Autowired
     private RequestProcessor requestProcessor;
     
     @Autowired
+    private PayloadDecoder payloadDecoder;
+    
+    @Autowired
     private ResponseProducer responseProducer;
     
-//    @EndpointInject("backEndRequest")
-//    private Endpoint backOut;
-//    
-//    @EndpointInject("backEndResponse")
-//    private Endpoint backIn;
+    @Autowired
+    private VodaRequestProducer vodaRequestProducer;
+    
+    @Autowired
+    private VodaResponseProcessor vodaResponseProcessor;
     
     @Override
     public void configure() throws Exception {
@@ -45,91 +62,44 @@ public class SmsRouter extends RouteBuilder {
         onException(Throwable.class).routeId("exception")
             .log("Exception occurred: ${exception.message}")
             .handled(true)
-            .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
-            .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("an exception occurred while handling request"))
+            .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
+            .setHeader(HEADER_ERROR_TEXT, simple("exception while handling request: ${exception.message}"))
             .to("direct:respond");
         
         from(frontIn).routeId("main")
             .log(LoggingLevel.DEBUG, "Main route starting with request: ${body}")
             .process(requestProcessor)
+            .process(payloadDecoder)
             .choice()
-                .when(e -> e.getProperty(Constants.OUT_FIELD_SMS_STATUS) != null)
+                .when(header(HEADER_SMS_STATUS).isNotNull())
                     .to("direct:respond")
-                .when(simple("${body.clientId} == 'test'"))
+                .when(header(HEADER_CLIENT_ID).isEqualTo("test"))
                     .to("direct:test")
+                .when(header(HEADER_CLIENT_ID).isEqualTo("live"))
+                    .to("direct:live")
                 .otherwise()
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_INVALID))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("Only client 'test' is supported for now."))
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
+                    .setHeader(HEADER_ERROR_TEXT, constant("Client not yet supported"))
                     .to("direct:respond");
                     
         from("direct:respond").routeId("response")
             .process(responseProducer)
-            .filter(e -> e.getProperty(Constants.OUT_FIELD_CLIENT_ID) != null && e.getProperty(Constants.OUT_FIELD_CORREL_ID) != null)
+            .filter(header(HEADER_CLIENT_ID).isNotNull())
+            .filter(header(HEADER_CORREL_ID).isNotNull())
             .marshal().json()
             .to(frontOut);
-
-        from("direct:delayed-respond").routeId("delay")
-            .delay(1500)
-            .to("direct:respond");
         
-        from("direct:test").routeId("test")
+        from("direct:live").routeId("live")
+            .log("LIVE: testing live send")
+            .process(vodaRequestProducer)
             .choice()
-                .when(simple("${body.payload.contains('S0D0')}"))
-                    .log("SODO: not responding")
-                .when(simple("${body.payload.contains('S0D1')}"))
-                    .log("S0D1: responding DELIVERED only")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
+                .when(header(HEADER_SMS_STATUS).isNotNull())
                     .to("direct:respond")
-                .when(simple("${body.payload.contains('S1D0')}"))
-                    .log("S1D0: responding SENT only")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:respond")
-                .when(simple("${body.payload.contains('S1DX')}"))
-                    .log("S1DX: responding SENT first")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:respond")
-                    .log("S1DX: responding FAILED instead of DELIVERED")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("failed after successful send"))
-                    .to("direct:delayed-respond")
-                .when(simple("${body.payload.contains('S1D1')}"))
-                    .log("S1D1: responding SENT first")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:respond")
-                    .log("S1D1: responding DELIVERED second")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
-                    .to("direct:delayed-respond")
-                .when(simple("${body.payload.contains('S2D0')}"))
-                    .log("S2D0: responding SENT first")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:respond")
-                    .log("S2D0: responding SENT again")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:delayed-respond")
-                .when(simple("${body.payload.contains('D1S1')}"))
-                    .log("D1S1: responding DELIVERED first")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_DELIVERED))
-                    .to("direct:respond")
-                    .log("D1S1: responding SENT after DELIVERED")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:delayed-respond")
-                .when(simple("${body.payload.contains('DXS1')}"))
-                    .log("DXS1: responding FAILED first")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("reporting failed before reporting sent"))
-                    .to("direct:respond")
-                    .log("DXS1: responding SENT after FAILED")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_SENT))
-                    .to("direct:delayed-respond")
-                .when(simple("${body.payload.contains('FAIL')}"))
-                    .log("FAIL: responding FAILED")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_FAILED))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("you requested this to FAIL"))
-                    .to("direct:delayed-respond")
                 .otherwise()
-                    .log("TEST: no marker found in incoming")
-                    .setProperty(Constants.OUT_FIELD_SMS_STATUS, constant(Constants.SMS_STATUS_INVALID))
-                    .setProperty(Constants.OUT_FIELD_ERROR_TEXT, constant("Test payload without S1D1 or other token"))
+                    .marshal().jacksonXml()
+                    .to(backend)
+                    .unmarshal().jacksonXml(VodaResponse.class)
+                    .process(vodaResponseProcessor)
                     .to("direct:respond");
     }
 }

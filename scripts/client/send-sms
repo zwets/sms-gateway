@@ -1,23 +1,44 @@
 #!/bin/bash
 
-USAGE="CLIENT CORREL DEADLINE PAYLOAD
+export LC_ALL="C"
+set -euo pipefail
 
-  Send an SMS over Kafka
+CLIENT="${CLIENT:-test}"
+CORREL="${CORREL:-CLIENT-$$-$RANDOM}"
+[ -n "${DEADLINE:-}" ] || DEADLINE="$(date -Is | sed -Ee 's/0/1/')"
+SENDER="${SENDER:-AFYA YAKO}"
+RECIPIENT="${RECIPIENT:-255782334124}"
+FILE='-'
+
+USAGE="[[[[[[CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
+
+  Send an SMS over Kafka to the SMS Gateway
 
   POSITIONAL PARAMS
-   CLIENT       Client on whose behalf you are sending
-   CORREL       Unique correlation ID within the CLIENT
-   DEADLINE     Time of expiry of the SMS in ISO UTC (date -Is)
-   PAYLOAD      Message to be scheduled"
+   CLIENT     Client on whose behalf you are sending [$CLIENT]
+   CORREL     Unique correlation ID within the CLIENT [$CORREL]
+   DEADLINE   Expiry of the SMS in ISO UTC [$DEADLINE]
+   SENDER     Sender name or number [$SENDER]
+   RECIPIENT  Destination number [$RECIPIENT]
+   FILE       File to be sent or - for stdin [$FILE]"
 
 . "$(dirname "$(realpath "$0")")/lib/common.sh"
 
-(($# == 4)) || usage_exit
+(( $# == 6 )) && CLIENT="$1" && shift || true
+(( $# == 5 )) && CORREL="$1" && shift || true
+(( $# == 4 )) && DEADLINE="$1" && shift || true
+(( $# == 3 )) && SENDER="$1" && shift || true
+(( $# == 2 )) && RECIPIENT="$1" && shift || true
+(( $# == 1 )) && FILE="$1" && shift || true
 
-CLIENT="$1"
-CORREL="$2"
-DEADLINE="$3"
-PAYLOAD="$4"
+
+VAULT="$(dirname "$(realpath "$0")")/../../config/live.vault"
+[ -f "$VAULT" ] || err_exit "vault not found: $VAULT"
+
+SMS_CRYPTO="$(dirname "$(realpath "$0")")/../../../sms-crypto/scripts/sms-crypto"
+[ -x "$SMS_CRYPTO" ] || err_exit "sms-crypto not found: $SMS_CRYPTO"
+
+PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CRYPTO" encrypt "$("$SMS_CRYPTO" pubkey "$VAULT" '123456' "$CLIENT")")"
 
 printf '{ "client-id": "%s", "correl-id": "%s", "deadline": "%s", "payload": "%s" }\n' \
 	"$CLIENT" "$CORREL" "$DEADLINE" "$PAYLOAD" |
