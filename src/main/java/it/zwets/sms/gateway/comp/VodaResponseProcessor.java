@@ -17,7 +17,7 @@ import it.zwets.sms.gateway.dto.VodaResponse;
 /**
  * Processes response from Voda Wasp REST API backend.
  * 
- * Transforms the in body froma {@link VodaResponse} to message headers.
+ * Transforms the in body from a {@link VodaResponse} to message headers.
  * 
  * When the <code>process</code> method has completed, the message header
  * sms-status is guaranteed to be set.
@@ -33,7 +33,7 @@ public class VodaResponseProcessor implements Processor {
         
         Message msg = exchange.getIn();
 
-        if (msg.getHeader(HEADER_SMS_STATUS) == null) {
+        if (msg.getHeader(HEADER_SMS_STATUS) != null) {
             LOG.debug("skipping, status already {}", msg.getHeader(HEADER_SMS_STATUS));
         }
         else {

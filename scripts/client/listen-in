@@ -1,0 +1,15 @@
+#!/bin/bash
+
+export LC_ALL="C"
+set -euo pipefail
+
+TOPIC='send-sms'
+USAGE="
+
+  Listen on the response topic ($TOPIC)"
+
+. "$(dirname "$(realpath "$0")")/lib/common.sh"
+
+(($# == 0)) || usage_exit
+
+kcat_listen

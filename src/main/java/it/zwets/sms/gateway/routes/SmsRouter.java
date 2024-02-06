@@ -60,7 +60,7 @@ public class SmsRouter extends RouteBuilder {
         // todo: make finer grained, set retry (if backend-related) etc
         // see: https://camel.apache.org/manual/exception-clause.html
         onException(Throwable.class).routeId("exception")
-            .log("Exception occurred: ${exception.message}")
+            .log("Exception ${exception}: ${exception.stacktrace}")
             .handled(true)
             .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
             .setHeader(HEADER_ERROR_TEXT, simple("exception while handling request: ${exception.message}"))
@@ -98,6 +98,7 @@ public class SmsRouter extends RouteBuilder {
                 .otherwise()
                     .marshal().jacksonXml()
                     .to(backend)
+                    .log("BACKEND RESPONSE: ${body}")
                     .unmarshal().jacksonXml(VodaResponse.class)
                     .process(vodaResponseProcessor)
                     .to("direct:respond");

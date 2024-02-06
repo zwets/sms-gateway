@@ -344,6 +344,6 @@ public class SmsMessage implements Serializable {
 	@Override
 	public String toString() {
 		String to = "to " + getHeader("To", "(unset)");
-		return "SmsMessage " + to + ": " + body.substring(0, 20) + " ...";
+		return "SmsMessage " + to + ": " + body.substring(0, Math.min(20,body.length())) + " ...";
 	}
 }
