@@ -31,7 +31,7 @@ import org.springframework.core.io.Resource;
  * 
  * To create the keystore and add entries, use keytool as follows:
  * <pre>
- * keytool -genkeypair -keyalg RSA -keysize 2048 -validity 36500 \
+ * keytool -genkeypair -keyalg RSA -keysize 4096 -validity 36500 \
  *    -storepass PASSWORD -keystore FILENAME -alias ALIAS -dname CN=ALIAS
  * </pre>
  * 

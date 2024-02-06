@@ -35,10 +35,10 @@ USAGE="[[[[[[CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 VAULT="$(dirname "$(realpath "$0")")/../../config/live.vault"
 [ -f "$VAULT" ] || err_exit "vault not found: $VAULT"
 
-SMS_CRYPTO="$(dirname "$(realpath "$0")")/../../../sms-crypto/scripts/sms-crypto"
-[ -x "$SMS_CRYPTO" ] || err_exit "sms-crypto not found: $SMS_CRYPTO"
+SMS_CLIENT="$(realpath -m "$(dirname "$(realpath "$0")")/../../../sms-client/bin/sms-client")"
+[ -x "$SMS_CLIENT" ] || err_exit "sms-client not found: $SMS_CLIENT"
 
-PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CRYPTO" encrypt "$("$SMS_CRYPTO" pubkey "$VAULT" '123456' "$CLIENT")")"
+PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CLIENT" encrypt "$("$SMS_CLIENT" pubkey "$VAULT" '123456' "$CLIENT")")"
 
 printf '{ "client-id": "%s", "correl-id": "%s", "deadline": "%s", "payload": "%s" }\n' \
 	"$CLIENT" "$CORREL" "$DEADLINE" "$PAYLOAD" |
