@@ -27,7 +27,7 @@ import org.springframework.core.io.Resource;
  * 
  * The <code>keytool -genkeypair</code> command generates a key pair
  * and stores it in a keystore.  Entries in a keystore are identified
- * by aliases (string values that we call "key IDs" below).
+ * by aliases.  In SMS Gateway, each client has its own entry.
  * 
  * To create the keystore and add entries, use keytool as follows:
  * <pre>
@@ -35,7 +35,9 @@ import org.springframework.core.io.Resource;
  *    -storepass PASSWORD -keystore FILENAME -alias ALIAS -dname CN=ALIAS
  * </pre>
  * 
- * To extract the public key for the generated entry as a DER file, use:
+ * To extract the public key for the generated entry as a DER file, use
+ * the {@link #getPublicKey(String)} method, or with keytool and openssl:
+ * 
  * <pre>
  * keytool -exportcert -keystore FILENAME -storepass 123456 -alias ALIAS2 |
  * openssl x509 -pubkey |

@@ -35,7 +35,6 @@ public class SmsGatewayConfiguration {
     private final String vaultKeypass;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
     private final KafkaEndpointProducerBuilder kafkaOutBuilder;
-    private final String vodacomWaspRequestUrl;
     private final String vodacomWaspUsername;
     private final String vodacomWaspPassword;
     
@@ -55,7 +54,6 @@ public class SmsGatewayConfiguration {
             @Value("${sms.gateway.kafka.outbound-topic}") String kafkaOutboundTopic,
             @Value("${sms.gateway.kafka.client-id}") String kafkaClientId,
             @Value("${sms.gateway.kafka.group-id}") String kafkaGroupId,
-            @Value("${sms.gateway.vodacom.wasp.request-url}") String vodaRequestUrl,
             @Value("${sms.gateway.vodacom.wasp.username}") String vodaRequestUsername, 
             @Value("${sms.gateway.vodacom.wasp.password}") String vodaRequestPassword
             ) {
@@ -75,7 +73,6 @@ public class SmsGatewayConfiguration {
                 .brokers(kafkaBrokers)
                 .clientId(kafkaClientId);
         
-        vodacomWaspRequestUrl = vodaRequestUrl;
         vodacomWaspUsername = vodaRequestUsername;
         vodacomWaspPassword = vodaRequestPassword;
     }
@@ -88,11 +85,6 @@ public class SmsGatewayConfiguration {
     @Bean(Constants.ENDPOINT_FRONTEND_RESPONSE)
     public Endpoint frontEndResponseEndpoint() {
         return kafkaOutBuilder.resolve(camelContext);
-    }
-    
-    @Bean(Constants.ENDPOINT_BACKEND_REQUEST)
-    public Endpoint backEndRequestEndpoint() {
-        return camelContext.getEndpoint(vodacomWaspRequestUrl);
     }
     
     @Bean("NoopHostnameVerifier")

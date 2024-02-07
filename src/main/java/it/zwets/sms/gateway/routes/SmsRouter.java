@@ -11,6 +11,8 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,14 +20,13 @@ import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.ResponseProducer;
-import it.zwets.sms.gateway.comp.VodaRequestProducer;
-import it.zwets.sms.gateway.comp.VodaResponseProcessor;
-import it.zwets.sms.gateway.dto.VodaResponse;
 
 @Component
 public class SmsRouter extends RouteBuilder {
     
-//    private static final Logger LOG = LoggerFactory.getLogger(SmsRouter.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(SmsRouter.class);
+    
+    public static String RESPOND = "direct:respond";
 
     @EndpointInject(Constants.ENDPOINT_FRONTEND_REQUEST)
     private Endpoint frontIn;
@@ -33,9 +34,6 @@ public class SmsRouter extends RouteBuilder {
     @EndpointInject(Constants.ENDPOINT_FRONTEND_RESPONSE)
     private Endpoint frontOut;
 
-    @EndpointInject(Constants.ENDPOINT_BACKEND_REQUEST)
-    private Endpoint backend;
-    
     @Autowired
     private RequestProcessor requestProcessor;
     
@@ -45,26 +43,17 @@ public class SmsRouter extends RouteBuilder {
     @Autowired
     private ResponseProducer responseProducer;
     
-    @Autowired
-    private VodaRequestProducer vodaRequestProducer;
-    
-    @Autowired
-    private VodaResponseProcessor vodaResponseProcessor;
-    
     @Override
     public void configure() throws Exception {
         
-//        Predicate client = bodyAs(SendSmsRequest.class);
-//        validator().type("incoming").withJava(IncomingValidator.class);
-
-        // todo: make finer grained, set retry (if backend-related) etc
-        // see: https://camel.apache.org/manual/exception-clause.html
+        // Global exception handler, respond with FAILED status
+        // See: https://camel.apache.org/manual/exception-clause.html
         onException(Throwable.class).routeId("exception")
-            .log("Exception ${exception}: ${exception.stacktrace}")
+            .log(LoggingLevel.ERROR, LOG, "Exception ${exception}: ${exception.stacktrace}")
             .handled(true)
             .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
-            .setHeader(HEADER_ERROR_TEXT, simple("exception while handling request: ${exception.message}"))
-            .to("direct:respond");
+            .setHeader(HEADER_ERROR_TEXT, simple("Exception while handling request: ${exception.message}"))
+            .to(RESPOND);
         
         from(frontIn).routeId("main")
             .log(LoggingLevel.DEBUG, "Main route starting with request: ${body}")
@@ -72,35 +61,22 @@ public class SmsRouter extends RouteBuilder {
             .process(payloadDecoder)
             .choice()
                 .when(header(HEADER_SMS_STATUS).isNotNull())
-                    .to("direct:respond")
+                    .to(RESPOND)
                 .when(header(HEADER_CLIENT_ID).isEqualTo("test"))
-                    .to("direct:test")
+                    .to(TestClientRoute.TEST_ROUTE)
                 .when(header(HEADER_CLIENT_ID).isEqualTo("live"))
-                    .to("direct:live")
+                    .to(VodaWaspRoute.VODA_WASP_ROUTE)
                 .otherwise()
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
                     .setHeader(HEADER_ERROR_TEXT, constant("Client not yet supported"))
-                    .to("direct:respond");
+                    .to(RESPOND);
                     
-        from("direct:respond").routeId("response")
+        from(RESPOND).routeId("response")
             .process(responseProducer)
             .filter(header(HEADER_CLIENT_ID).isNotNull())
             .filter(header(HEADER_CORREL_ID).isNotNull())
             .marshal().json()
             .to(frontOut);
         
-        from("direct:live").routeId("live")
-            .log("LIVE: testing live send")
-            .process(vodaRequestProducer)
-            .choice()
-                .when(header(HEADER_SMS_STATUS).isNotNull())
-                    .to("direct:respond")
-                .otherwise()
-                    .marshal().jacksonXml()
-                    .to(backend)
-                    .log("BACKEND RESPONSE: ${body}")
-                    .unmarshal().jacksonXml(VodaResponse.class)
-                    .process(vodaResponseProcessor)
-                    .to("direct:respond");
     }
 }

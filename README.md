@@ -65,7 +65,8 @@ headers, followed by an empty line, followed by the body:
     Here is the content.
 
 At least the `To` header and body must be present.  Other headers may be
-required depending on backend; excess headers are ignored.
+required depending on backend; excess headers are ignored.  The `SmsMessage`
+class captures this logic.
 
 #### Encryption
 
@@ -150,8 +151,11 @@ may come after `SENT` and implies non-delivery.
 ### Wasp API
 
 The current release uses the Vodacom "Wasp" API, a simple http POST interface.
-We may migrate to SMPP.  We have no delivery reports yet.
+Its route and processors are defined separately and will need to be overridden
+if you reuse this code.
 
+
+## Implementation Notes
 
 ### Failover & Retry
 
@@ -160,16 +164,14 @@ the SMS Scheduler.  The Scheduler manages long-running processes and has all
 facilities for dealing with backend failures, including scheduling retries.
 
 For this reason, the SMS Gateway is configured for "fail-fast" operation: when
-a backend connection is unavailable, it will attempt fail-over routes but with
-limited retries, and then return a `FAILED` response.
-
-#### Documentation
+a backend connection is unavailable, it will attempt fail-over but with short
+connection timeouts and no retries.
 
  * <https://www.jessym.com/articles/retry-mechanisms-in-apache-camel>
  * <https://camel.apache.org/components/4.0.x/eips/failover-eip.html>
- * <https://camel.apache.org/components/4.0.x/eips/dead-letter-channel.html>
- * <https://stackoverflow.com/questions/26838086/how-to-implement-the-retry-on-timeout-in-camel>
- * <https://stackoverflow.com/questions/43122983/how-to-stop-camel-http-retry>
+ * <https://camel.apache.org/components/4.0.x/eips/dead-letter-channel.html> about redelivery (default 0)
+ * <https://stackoverflow.com/questions/26838086/how-to-implement-the-retry-on-timeout-in-camel> about the RetryErrorHandler
+ * <https://stackoverflow.com/questions/43122983/how-to-stop-camel-http-retry> about connection timeout
  * <https://stackoverflow.com/questions/59272567/how-to-retry-a-camel-direct-route-once>
 
 ### SMPP
