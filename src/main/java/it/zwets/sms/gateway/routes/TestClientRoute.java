@@ -8,6 +8,7 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 import static org.apache.camel.LoggingLevel.INFO;
 
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,19 +24,26 @@ import it.zwets.sms.gateway.dto.SmsMessage;
  */
 @Component
 public class TestClientRoute extends RouteBuilder {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(TestClientRoute.class);    
+
+    private static final Logger LOG = LoggerFactory.getLogger(TestClientRoute.class);
 
     public static String TEST_ROUTE = "direct:test";
     public static String DELAY_RESPOND = "direct:delayed-respond";
-    
+
     @Override
     public void configure() throws Exception {
-        
+
+        onException(Throwable.class).routeId("test-route-exception")
+            .log(LoggingLevel.ERROR, LOG, "Exception in Test Route: ${exception}: ${exception.stacktrace}")
+            .handled(true)
+            .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
+            .setHeader(HEADER_ERROR_TEXT, simple("Exception while handling request: ${exception.message}"))
+            .to(SmsRouter.RESPOND);
+
         from(DELAY_RESPOND).routeId("delay")
             .delay(1500)
             .to(SmsRouter.RESPOND);
-        
+
         from(TEST_ROUTE).routeId("test")
             .setBody(bodyAs(SmsMessage.class).method("getBody()"))
             .choice()
