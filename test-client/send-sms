@@ -33,9 +33,11 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 (( $# == 2 )) && RECIPIENT="$1" && shift || true
 (( $# == 1 )) && FILE="$1" && shift || FILE='-'
 
-# For the encryptinon we use the sms-client tool
-SMS_CLIENT="$(realpath -m "$(dirname "$(realpath "$0")")/../../sms-client/bin/sms-client")"
-[ -x "$SMS_CLIENT" ] || err_exit "sms-client not found: $SMS_CLIENT"
+# Need the sms-client for encrypting the payload
+[ -n "${SMS_CLIENT:-}" ] ||
+SMS_CLIENT="$(realpath -e "$(dirname "$(realpath "$0")")/../../sms-client/bin/sms-client" 2>/dev/null)" ||
+SMS_CLIENT="/opt/sms-client/bin/sms-client" ||
+    err_exit "sms-client not found: $SMS_CLIENT"
 
 # Read the PUBKEY from PUBFILE
 PUBKEY="$(cat "$PUBFILE")" || err_exit "failed to read pubkey file: $PUBFILE"

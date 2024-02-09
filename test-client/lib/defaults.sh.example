@@ -8,6 +8,9 @@ DEFAULT_DEADLINE='2100-01-01T00:00:00Z'
 DEFAULT_SENDER='TEST SENDER'
 DEFAULT_RECIPIENT='255123456789'
 
+# If send-sms can't find sms-client, set it here
+#SMS_CLIENT=/path/to/sms-client/bin/sms-client
+
 # --- NO EDITING BELOW THIS LINE ---
 
 BROKER="${BROKER:-$DEFAULT_BROKER}"
