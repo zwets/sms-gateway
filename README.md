@@ -156,18 +156,23 @@ have all the details.
 
 ## Deployment
 
-We assume installation under `/opt/sms-gateway` (all as `sudo`):
+Install the [sms-client](https://github.com/zwets/sms-client) tools for creating
+the vault:
+
+    cd /opt &&
+    sudo tar xzf sms-client-${VERSION}.tgz
+
+Create the installation directory `/opt/sms-gateway` (everything below is as root)
 
     mkdir /opt/sms-gateway && cd /opt/sms-gateway
     cp sms-gateway-${VERSION}.jar .
-    ln -sf sms-gateway-${VERSION}.jar sms-gateway-prod.jar
+    ln -sf sms-gateway-${VERSION}.jar sms-gateway.jar
 
 Create the `smeg` user and group it will run as
 
-    adduser --system 
-    adduser --system --comment 'SMS Gateway' --system --group --no-create-home --home /opt/sms-gateway smeg
+    adduser --system --gecos 'SMS Gateway' --group --no-create-home --home /opt/sms-gateway smeg
 
-Create log dir (if used)
+Create log dir (if used - NO we use journalctl)
 
     mkdir /var/log/sms-gateway
     chown smeg:adm /var/log/sms-gateway
@@ -185,6 +190,26 @@ Add the application properties to config
     vi config/application-prod.properties &&
     chmod 0640 config/application-prod.properties
 
+Create the vault (specified in application properties)
+
+    # Still in the config directory
+    ../../sms-client/new-keypair prod.vault ${YOURKEYPASS} test    
+    ... and the same for your other clients ...
+
+    # Set the path in your application-prod.properties
+    sms.gateway.crypto.keystore=config/prod.vault
+    sms.gateway.crypto.keypass=${YOURKEYPASS}
+
+    # Make them read-only for smeg
+    chown root:smeg *
+    chmod 0640 *
+
+Get the public keys for later reference
+
+    ../../sms-client/sms-client aliases prod.vault ${YOURKEYPASS} | while read ALIAS; do
+        ../../sms-client/get-pubkey prod.vault ${YOURKEYPASS} $ALIAS >$ALIAS.pub
+    done
+
 Create the Kafka topics
 
     BOOTSTRAP_SERVER='localhost:9092'
@@ -195,7 +220,7 @@ Create the Kafka topics
 Add the systemd service by editing `etc/sms-gateway.service` and copying or
 symlinking into `/etc/systemd/system`
 
-    systemctl enable etc/sms-gateway.service
+    systemctl enable $PWD/sms-gateway.service
     systemctl start sms-gateway
 
 
