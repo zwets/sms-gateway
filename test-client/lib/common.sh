@@ -25,6 +25,8 @@ export USAGE="${USAGE:-}
    -d,--dump           Write input to stderr / full output
    -v,--verbose        Display diagnostic output
    -h,--help           Display usage information
+
+  All CAPITALISED options can also be passed as environment vars
 "
 # General functions
 

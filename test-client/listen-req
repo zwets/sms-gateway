@@ -8,7 +8,7 @@ set -euo pipefail
 TOPIC='send-sms'
 USAGE="
 
-  Listen on the response topic ($TOPIC)"
+  Listen on the request topic ($TOPIC)"
 
 . "$(dirname "$(realpath "$0")")/lib/common.sh"
 

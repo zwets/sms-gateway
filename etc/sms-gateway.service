@@ -1,11 +1,11 @@
 [Unit]
 Description=SMS Gateway Server
 Documentation=https://github.com/zwets/sms-gateway
-Requires=kafka.service
+Requires=network.target kafka.service
 After=kafka.service
 
 [Service]
-Type=exec
+Type=simple
 User=smeg
 Group=smeg
 WorkingDirectory=/opt/sms-gateway

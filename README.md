@@ -137,7 +137,6 @@ See the scripts in the `bin` directory, and [deployment](#deployment) below.
 
  * `run-boot-test.sh` (development) runs code directly with `test` profile
  * `run-gateway-test.sh` runs the JAR with the `test` profile activated
- * `run-gateway-prod.sh` runs the JAR with the `prod` profile activated
 
 ### Configuration
 
@@ -151,18 +150,30 @@ have all the details.
 
 ## Testing
 
-@TODO@: describe
+Requests submitted by the `test` client are not routed to the backend but
+instead "loop back" with behaviour determined by the SMS body.  For instance,
+sending a message with `S1D0` in the body will return a `SENT` reply but no
+`DELIVERED`.  See the route in `TestClientRoute` for details.
+
+The unit tests in `src/test/java` exercise the `test` client routes.
+
+The `test-client` directory has scripts for generating `send-sms` requests
+and injecting them on the `send-sms` queue, generating "fake" reponses on
+the `sms-status` queue, and for monitoring the `send-sms` and `sms-status`
+queues.  (Requires installation of `kafkacat` or `kcat`, and `jq`.)
+
+See [test-client/README.md](test-client/README.md) for details.
 
 
 ## Deployment
 
-Install the [sms-client](https://github.com/zwets/sms-client) tools for creating
-the vault:
+Deployment requires the [sms-client](https://github.com/zwets/sms-client)
+tools for creating the vault (see that repo for details):
 
     cd /opt &&
-    sudo tar xzf sms-client-${VERSION}.tgz
+    tar xzf sms-client.tar.gz
 
-Create the installation directory `/opt/sms-gateway` (everything below is as root)
+Create the installation directory `/opt/sms-gateway`
 
     mkdir /opt/sms-gateway && cd /opt/sms-gateway
     cp sms-gateway-${VERSION}.jar .
@@ -172,12 +183,6 @@ Create the `smeg` user and group it will run as
 
     adduser --system --gecos 'SMS Gateway' --group --no-create-home --home /opt/sms-gateway smeg
 
-Create log dir (if used - NO we use journalctl)
-
-    mkdir /var/log/sms-gateway
-    chown smeg:adm /var/log/sms-gateway
-    chmod 0750 /var/log/sms-gateway
-
 Create config dir
 
     mkdir config &&
@@ -186,29 +191,29 @@ Create config dir
 
 Add the application properties to config
 
-    # Can also be config/application.properties
     vi config/application-prod.properties &&
     chmod 0640 config/application-prod.properties
 
-Create the vault (specified in application properties)
+Create the vault
 
     # Still in the config directory
-    ../../sms-client/bin/new-keypair prod.vault ${YOURKEYPASS} test    
-    ... and the same for your other clients ...
+    ../../sms-client/bin/new-keypair prod.vault ${KEYPASS} test    
+    ... do the same for the other clients ...
 
-    # Set the path in your application-prod.properties
-    sms.gateway.crypto.keystore=config/prod.vault
-    sms.gateway.crypto.keypass=${YOURKEYPASS}
+    # Restrict access
+    chown root:smeg prod.vault
+    chmod 0640 prod.vault
 
-    # Make them read-only for smeg
-    chown root:smeg *
-    chmod 0640 *
-
-Get the public keys for later reference
-
+    # (Optional) extract the public keys for later use
     ../../sms-client/bin/sms-client aliases prod.vault ${YOURKEYPASS} | while read ALIAS; do
         ../../sms-client/bin/get-pubkey prod.vault ${YOURKEYPASS} $ALIAS >$ALIAS.pub
     done
+
+Set vault location in properties
+
+    # In: config/application-prod.properties
+    sms.gateway.crypto.keystore=config/prod.vault
+    sms.gateway.crypto.keypass=${KEYPASS}
 
 Create the Kafka topics
 
@@ -220,8 +225,13 @@ Create the Kafka topics
 Add the systemd service by editing `etc/sms-gateway.service` and copying or
 symlinking into `/etc/systemd/system`
 
-    systemctl enable $PWD/sms-gateway.service
+    systemctl enable etc/sms-gateway.service
     systemctl start sms-gateway
+
+To see and follow the logging output
+
+    sudo journalctl -xeu sms-gateway
+    sudo journalctl -fu sms-gateway
 
 
 ## Implementation Notes
