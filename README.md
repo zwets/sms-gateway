@@ -193,7 +193,7 @@ Add the application properties to config
 Create the vault (specified in application properties)
 
     # Still in the config directory
-    ../../sms-client/new-keypair prod.vault ${YOURKEYPASS} test    
+    ../../sms-client/bin/new-keypair prod.vault ${YOURKEYPASS} test    
     ... and the same for your other clients ...
 
     # Set the path in your application-prod.properties
@@ -206,8 +206,8 @@ Create the vault (specified in application properties)
 
 Get the public keys for later reference
 
-    ../../sms-client/sms-client aliases prod.vault ${YOURKEYPASS} | while read ALIAS; do
-        ../../sms-client/get-pubkey prod.vault ${YOURKEYPASS} $ALIAS >$ALIAS.pub
+    ../../sms-client/bin/sms-client aliases prod.vault ${YOURKEYPASS} | while read ALIAS; do
+        ../../sms-client/bin/get-pubkey prod.vault ${YOURKEYPASS} $ALIAS >$ALIAS.pub
     done
 
 Create the Kafka topics

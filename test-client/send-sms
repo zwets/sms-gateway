@@ -9,11 +9,12 @@ set -euo pipefail
 . "$(dirname "$(realpath "$0")")/lib/defaults.sh"
 
 # The functions in common.sh will display this
-USAGE="[[[[[[CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
+USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 
   Send an SMS over Kafka to the SMS Gateway
 
   POSITIONAL PARAMS
+   PUBFILE    Public key file to encrypt with [lib/\$CLIENT.pub]
    CLIENT     Client on whose behalf you are sending [$CLIENT]
    CORREL     Unique correlation ID within the CLIENT [$CORREL]
    DEADLINE   Expiry of the SMS in ISO UTC [$DEADLINE]
@@ -24,6 +25,7 @@ USAGE="[[[[[[CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 . "$(dirname "$(realpath "$0")")/lib/common.sh"
 
 # Parse the optional arguments
+(( $# == 7 )) && PUBKEY="$1" && shift || true
 (( $# == 6 )) && CLIENT="$1" && shift || true
 (( $# == 5 )) && CORREL="$1" && shift || true
 (( $# == 4 )) && DEADLINE="$1" && shift || true
@@ -31,18 +33,15 @@ USAGE="[[[[[[CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 (( $# == 2 )) && RECIPIENT="$1" && shift || true
 (( $# == 1 )) && FILE="$1" && shift || FILE='-'
 
-# We need the vault for pulling the pubkey for CLIENT
-[ "$CLIENT" = 'test' ] &&
-    VAULT="$(dirname "$(realpath "$0")")/../src/main/resources/builtin.vault" ||
-    VAULT="$(dirname "$(realpath "$0")")/../config/live.vault"
-[ -f "$VAULT" ] || err_exit "vault not found: $VAULT"
-
-# For the encryptinon we need the sms-client tool
+# For the encryptinon we use the sms-client tool
 SMS_CLIENT="$(realpath -m "$(dirname "$(realpath "$0")")/../../sms-client/bin/sms-client")"
 [ -x "$SMS_CLIENT" ] || err_exit "sms-client not found: $SMS_CLIENT"
 
+# Read the PUBKEY from PUBFILE
+PUBKEY="$(cat "$PUBFILE")" || err_exit "failed to read pubkey file: $PUBFILE"
+
 # Produce the encrypted payload for CLIENT
-PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CLIENT" encrypt "$("$SMS_CLIENT" pubkey "$VAULT" '123456' "$CLIENT")")"
+PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CLIENT" encrypt "$PUBKEY")"
 
 # Produce the message and pipe it onto the topic
 printf '{ "client-id": "%s", "correl-id": "%s", "deadline": "%s", "payload": "%s" }\n' \

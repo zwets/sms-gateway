@@ -68,19 +68,22 @@ emit "TOPIC     = $TOPIC"
 
 # Helper functions
 
+KCAT="$(which kcat 2>/dev/null)" || KCAT="$(which kafkacat 2>/dev/null)" || err_exit "command not found: kcat or kafkacat (do: apt install kcat || apt install kafkacat)"
+JQ="$(which jq 2>/dev/null)" || err_exit "command not found: jq (do: apt install jq)"
+
 dump_input() {
-    [ $DUMP ] && jq . "$@" | tee /dev/stderr || cat "$@"
+    [ $DUMP ] && $JQ . "$@" | tee /dev/stderr || cat "$@"
 }
 
 # Kafka (kcat) functions
 
 kcat_send() {
     F="${1:--}" && [ "$F" = '-' ] || [ -f "$F" ] || err_exit "no such file: $F"
-    dump_input "$F" | tr '\n' ' ' | kcat -P -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${EVENTKEY:+-k} $EVENTKEY -c 1 ${VERBOSE:+-v} "$@"
+    dump_input "$F" | tr '\n' ' ' | $KCAT -P -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${EVENTKEY:+-k} $EVENTKEY -c 1 ${VERBOSE:+-v} "$@"
 }
 
 kcat_listen() {
-    kcat -C -u -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | jq .
+    $KCAT -C -u -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | $JQ .
 }
 
 # vim: sts=4:sw=4:ai:si:et

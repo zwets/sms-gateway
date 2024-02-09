@@ -1,6 +1,11 @@
 #!/bin/bash
 
+export LC_ALL="C"
+set -euo pipefail
+
 TOPIC='sms-status'
+
+. "$(dirname "$(realpath "$0")")/lib/defaults.sh"
 
 USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
 

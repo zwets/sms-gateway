@@ -3,6 +3,8 @@
 export LC_ALL="C"
 set -euo pipefail
 
+. "$(dirname "$(realpath "$0")")/lib/defaults.sh"
+
 TOPIC='send-sms'
 USAGE="
 
