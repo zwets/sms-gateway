@@ -9,7 +9,7 @@ Type=simple
 User=smeg
 Group=smeg
 WorkingDirectory=/opt/sms-gateway
-ExecStart=/usr/bin/java -jar sms-gateway.jar --spring.profiles.active=prod
+ExecStart=/usr/bin/java -Xmx512m -jar sms-gateway.jar --spring.profiles.active=prod
 ExecStop=/usr/bin/kill -s TERM $MAINPID
 SuccessExitStatus=143
 Restart=always
