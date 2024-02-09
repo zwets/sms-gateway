@@ -95,6 +95,7 @@ Response messages on topic `sms-status` have this JSON structure:
 {
     "client-id": client ID from request
     "correl-id": correlation ID from request
+    "timestamp": ISO-8601 instant
     "sms-status": SENT, DELIVERED, EXPIRED, INVALID, FAILED
     "recall-id": optional field with backend correlation
     "error-text": optional field with error description

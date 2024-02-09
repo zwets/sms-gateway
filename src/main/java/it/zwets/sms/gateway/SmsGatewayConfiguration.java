@@ -140,6 +140,7 @@ public class SmsGatewayConfiguration {
 
         public static final String HEADER_CLIENT_ID = "clientId";
         public static final String HEADER_CORREL_ID = "correlId";
+        public static final String HEADER_TIMESTAMP = "timeStamp";
         public static final String HEADER_SMS_STATUS = "smsStatus";
         public static final String HEADER_RECALL_ID = "recallId";
         public static final String HEADER_ERROR_TEXT = "errorText";
@@ -148,6 +149,7 @@ public class SmsGatewayConfiguration {
         
         public static final String OUT_FIELD_CLIENT_ID = "client-id";
         public static final String OUT_FIELD_CORREL_ID = "correl-id";
+        public static final String OUT_FIELD_TIMESTAMP = "timestamp";
         public static final String OUT_FIELD_SMS_STATUS = "sms-status";
         public static final String OUT_FIELD_RECALL_ID = "recall-id";
         public static final String OUT_FIELD_ERROR_TEXT = "error-text";

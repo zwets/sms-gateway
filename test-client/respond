@@ -26,6 +26,6 @@ CORREL="$2"
 STATUS="$3"
 (($# >= 4)) && shift 3 && ERRTEXT="$*" || ERRTEXT=""
  
-printf '{ "client-id": "%s", "correl-id": "%s", "sms-status": "%s"%s }\n' \
-	"$CLIENT" "$CORREL" "$STATUS" "${ERRTEXT:+, \"error-text\": \"$ERRTEXT\"}" |
+printf '{ "client-id": "%s", "correl-id": "%s", "timestamp": "%s", "sms-status": "%s"%s }\n' \
+	"$CLIENT" "$CORREL" "$(date -Is)" "$STATUS" "${ERRTEXT:+, \"error-text\": \"$ERRTEXT\"}" |
 kcat_send

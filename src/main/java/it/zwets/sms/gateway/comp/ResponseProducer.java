@@ -5,6 +5,9 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CORR
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_RECALL_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_TIMESTAMP;
+
+import java.time.Instant;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -35,6 +38,7 @@ public class ResponseProducer implements Processor {
         
         String clientId = msg.getHeader(HEADER_CLIENT_ID, String.class);
         String correlId = msg.getHeader(HEADER_CORREL_ID, String.class);
+        String timeStamp = msg.getHeader(HEADER_TIMESTAMP, Instant.now().toString(), String.class);
         String smsStatus = msg.getHeader(HEADER_SMS_STATUS, String.class);
         String recallId = msg.getHeader(HEADER_RECALL_ID, String.class);
         String errorText = msg.getHeader(HEADER_ERROR_TEXT, String.class);
@@ -42,8 +46,8 @@ public class ResponseProducer implements Processor {
             // Make sure we return sane response
         
         if (correlId != null && clientId != null && smsStatus != null) {
-            LOG.debug("Producing response: {}:{}:{}:{}:{}", clientId, correlId, smsStatus, recallId, errorText);
-            msg.setBody(new SmsStatusResponse(clientId, correlId, smsStatus, recallId, errorText));
+            LOG.debug("Producing response: {}:{}:{}:{}:{}:{}", clientId, correlId, timeStamp, smsStatus, recallId, errorText);
+            msg.setBody(new SmsStatusResponse(clientId, correlId, timeStamp, smsStatus, recallId, errorText));
         }
         else {
             LOG.warn("Not producing response: no client ID and correl ID present");

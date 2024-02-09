@@ -10,6 +10,7 @@ import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 public record SmsStatusResponse(
         @JsonProperty(Constants.OUT_FIELD_CLIENT_ID) String clientId,
         @JsonProperty(Constants.OUT_FIELD_CORREL_ID) String correlId,
+        @JsonProperty(Constants.OUT_FIELD_TIMESTAMP) String timeStamp,
         @JsonProperty(Constants.OUT_FIELD_SMS_STATUS) String smsStatus,
         @JsonProperty(Constants.OUT_FIELD_RECALL_ID) String recallId,
         @JsonProperty(Constants.OUT_FIELD_ERROR_TEXT) String errorText) { }
