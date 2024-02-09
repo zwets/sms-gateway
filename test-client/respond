@@ -1,6 +1,7 @@
 #!/bin/bash
 
 TOPIC='sms-status'
+
 USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
 
   Fake a response from the SMS gateway
@@ -11,7 +12,7 @@ USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
    STATUS   Status to report back (SENT, etc)
    ERRTEXT  Optional error text (rest of line)"
 
-. "$(dirname "$0")/../lib/common.sh"
+. "$(dirname "$(realpath "$0")")/lib/common.sh"
 
 (($# >= 1)) || usage_exit
 

@@ -3,10 +3,8 @@
 export LC_ALL="C"
 set -euo pipefail
 
-# Defaults
-
-export BROKER="${BROKER:-localhost:9192}"
-export TOPIC="${TOPIC:-send-sms}"
+export BROKER="${BROKER:-${DEFAULT_BROKER:-localhost:9192}}"
+export TOPIC="${TOPIC:-${DEFAULT_TOPIC:-send-sms}}"
 export PARTITION="${PARTITION:-}"
 export EVENTKEY="${EVENTKEY:-}"
 export GROUPID="${GROUPID:-}"

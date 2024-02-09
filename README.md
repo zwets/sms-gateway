@@ -127,35 +127,38 @@ may come after `SENT` and implies non-delivery.
 > a sensible order, and to eventually receive at least one status response,
 > but you should be prepared for out-of-order responses.
 >
-> **Note** we do not yet have `DELIVERED` notifications from the backend!
+> **Note** we do not yet have `DELIVERED` notifications from the backend,
+> and hence it may happen that you get no response at all.
 
 
 ## Running
 
-@TODO@: see the `scripts` directory.
+See the `bin` directory.  @TODO@ add detail.
 
 ### Configuration
 
-@TODO@: document the `application-*.properties` and setting up the vault.
+@TODO@: document the `application-*.properties` and setting up the vault
+using <https://github.com/zwets/sms-client>
 
 
 ## Testing
 
-@TODO@: describe the `dev` and `test` profiles and how to JUnit and live test
+@TODO@: describe the `dev` and `test` profiles and how to JUnit and live
+testing (see the `test-client` directory).
 
 
 ## Developing
 
 @TODO@: setting up Eclipse, running unit tests
 
+
+## Implementation Notes
+
 ### Wasp API
 
 The current release uses the Vodacom "Wasp" API, a simple http POST interface.
 Its route and processors are defined separately and will need to be overridden
 if you reuse this code.
-
-
-## Implementation Notes
 
 ### Failover & Retry
 
@@ -164,15 +167,14 @@ the SMS Scheduler.  The Scheduler manages long-running processes and has all
 facilities for dealing with backend failures, including scheduling retries.
 
 For this reason, the SMS Gateway is configured for "fail-fast" operation: when
-a backend connection is unavailable, it will attempt fail-over but with short
-connection timeouts and no retries.
+a backend connection is unavailable, it will attempt fail-over after a short
+timeout, and without retries.
 
- * <https://www.jessym.com/articles/retry-mechanisms-in-apache-camel>
- * <https://camel.apache.org/components/4.0.x/eips/failover-eip.html>
- * <https://camel.apache.org/components/4.0.x/eips/dead-letter-channel.html> about redelivery (default 0)
- * <https://stackoverflow.com/questions/26838086/how-to-implement-the-retry-on-timeout-in-camel> about the RetryErrorHandler
- * <https://stackoverflow.com/questions/43122983/how-to-stop-camel-http-retry> about connection timeout
- * <https://stackoverflow.com/questions/59272567/how-to-retry-a-camel-direct-route-once>
+ * [On Exception](https://camel.apache.org/manual/exception-clause.html)
+ * [Error Handler](https://camel.apache.org/manual/error-handler.html)
+ * [Dead Letter Channel](https://camel.apache.org/components/4.0.x/eips/dead-letter-channel.html)
+ * [Blog on Camel Retry Mechanisms](https://www.jessym.com/articles/retry-mechanisms-in-apache-camel)
+ * [Failover EIP](https://camel.apache.org/components/4.0.x/eips/failover-eip.html)
 
 ### SMPP
 
