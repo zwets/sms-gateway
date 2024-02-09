@@ -133,23 +133,70 @@ may come after `SENT` and implies non-delivery.
 
 ## Running
 
-See the `bin` directory.  @TODO@ add detail.
+See the scripts in the `bin` directory, and [deployment](#deployment) below.
+
+ * `run-boot-test.sh` (development) runs code directly with `test` profile
+ * `run-gateway-test.sh` runs the JAR with the `test` profile activated
+ * `run-gateway-prod.sh` runs the JAR with the `prod` profile activated
 
 ### Configuration
 
-@TODO@: document the `application-*.properties` and setting up the vault
-using <https://github.com/zwets/sms-client>
+Drop a file `application.properties` (or separate files
+`application-{prod,test}.properties`) in your PWD or PWD/config, and these
+will be picked up.
+
+The Spring Boot docs for [Externalised Configuration](https://docs.spring.io/spring-boot/docs/3.0.4/reference/html/features.html#features.external-config)
+have all the details.
 
 
 ## Testing
 
-@TODO@: describe the `dev` and `test` profiles and how to JUnit and live
-testing (see the `test-client` directory).
+@TODO@: describe
 
 
-## Developing
+## Deployment
 
-@TODO@: setting up Eclipse, running unit tests
+We assume installation under `/opt/sms-gateway` (all as `sudo`):
+
+    mkdir /opt/sms-gateway && cd /opt/sms-gateway
+    cp sms-gateway-${VERSION}.jar .
+    ln -sf sms-gateway-${VERSION}.jar sms-gateway-prod.jar
+
+Create the `smeg` user and group it will run as
+
+    adduser --system 
+    adduser --system --comment 'SMS Gateway' --system --group --no-create-home --home /opt/sms-gateway smeg
+
+Create log dir (if used)
+
+    mkdir /var/log/sms-gateway
+    chown smeg:adm /var/log/sms-gateway
+    chmod 0750 /var/log/sms-gateway
+
+Create config dir
+
+    mkdir config &&
+    chown root:smeg config &&
+    chmod 0750 config
+
+Add the application properties to config
+
+    # Can also be config/application.properties
+    vi config/application-prod.properties &&
+    chmod 0640 config/application-prod.properties
+
+Create the Kafka topics
+
+    BOOTSTRAP_SERVER='localhost:9092'
+    for TOPIC in send-sms sms-status; do
+        kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" --create --if-not-exists --topic "${TOPIC}"
+    done
+
+Add the systemd service by editing `etc/sms-gateway.service` and copying or
+symlinking into `/etc/systemd/system`
+
+    systemctl enable etc/sms-gateway.service
+    systemctl start sms-gateway
 
 
 ## Implementation Notes

@@ -18,6 +18,7 @@ import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.VodaRequestProducer;
 import it.zwets.sms.gateway.comp.VodaResponseProcessor;
+import it.zwets.sms.gateway.routes.VodaWaspRoute;
 
 /**
  * Application configuration.
@@ -87,6 +88,11 @@ public class SmsGatewayConfiguration {
         return kafkaOutBuilder.resolve(camelContext);
     }
     
+    @Bean(Constants.ENDPOINT_BACKEND_REQUEST)
+    public Endpoint backendRequestEndpoint() {
+        return camelContext.getEndpoint(VodaWaspRoute.VODA_WASP_ROUTE);
+    }
+    
     @Bean("NoopHostnameVerifier")
     public HostnameVerifier getNoopHostnameVerifier() {
         return NoopHostnameVerifier.INSTANCE;
@@ -122,7 +128,6 @@ public class SmsGatewayConfiguration {
         public static final String ENDPOINT_FRONTEND_REQUEST = "frontEndRequest";
         public static final String ENDPOINT_FRONTEND_RESPONSE = "frontEndResponse";
         public static final String ENDPOINT_BACKEND_REQUEST = "backEndRequest";
-        //public static final String ENDPOINT_BACKEND_RESPONSE = "backEndResponse";
         
         // Incoming message fields
         

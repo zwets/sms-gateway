@@ -1,0 +1,19 @@
+[Unit]
+Description=SMS Gateway Server
+Documentation=https://github.com/zwets/sms-gateway
+Requires=kafka.service
+After=kafka.service
+
+[Service]
+Type=exec
+User=smeg
+Group=smeg
+WorkingDirectory=/opt/sms-gateway
+ExecStart=/usr/bin/java -jar sms-gateway-prod.jar --spring.profiles.active=prod
+ExecStop=/usr/bin/kill -s TERM $MAINPID
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -34,6 +34,9 @@ public class SmsRouter extends RouteBuilder {
     @EndpointInject(Constants.ENDPOINT_FRONTEND_RESPONSE)
     private Endpoint frontOut;
 
+    @EndpointInject(Constants.ENDPOINT_BACKEND_REQUEST)
+    private Endpoint backend;
+
     @Autowired
     private RequestProcessor requestProcessor;
     
@@ -65,7 +68,7 @@ public class SmsRouter extends RouteBuilder {
                 .when(header(HEADER_CLIENT_ID).isEqualTo("test"))
                     .to(TestClientRoute.TEST_ROUTE)
                 .when(header(HEADER_CLIENT_ID).isEqualTo("live"))
-                    .to(VodaWaspRoute.VODA_WASP_ROUTE)
+                    .to(backend)
                 .otherwise()
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
                     .setHeader(HEADER_ERROR_TEXT, constant("Client not yet supported"))

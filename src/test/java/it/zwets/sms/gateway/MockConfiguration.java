@@ -76,6 +76,7 @@ public class MockConfiguration {
      */
     @Bean(Constants.ENDPOINT_BACKEND_REQUEST)
     public Endpoint getBackEndRequestEndpoint(CamelContext camelContext) {
+        // Not currently invoked from the unit tests.
         return camelContext.getEndpoint("log:BACKEND_DUMMY_FOR_NOW");
     }
 
