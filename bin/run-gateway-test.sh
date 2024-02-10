@@ -3,7 +3,7 @@
 export LC_ALL="C"
 set -euo pipefail
 
-cd "$(dirname "$(realpath "$0")")/../.."
+cd "$(dirname "$(realpath "$0")")/.."
 
 RELEASE=1.0.0
 JAR="target/sms-gateway-${RELEASE}.jar"
