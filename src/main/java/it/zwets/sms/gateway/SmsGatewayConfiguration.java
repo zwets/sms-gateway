@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
+import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.VodaRequestProducer;
 import it.zwets.sms.gateway.comp.VodaResponseProcessor;
 import it.zwets.sms.gateway.routes.VodaWaspRoute;
@@ -32,6 +33,7 @@ public class SmsGatewayConfiguration {
 
     private final CamelContext camelContext;
 
+    private final String[] allowedClients;
     private final String vaultKeystore;
     private final String vaultKeypass;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
@@ -48,6 +50,7 @@ public class SmsGatewayConfiguration {
      * @param camelContext
      */
     public SmsGatewayConfiguration(CamelContext camelContext,
+            @Value("${sms.gateway.allowed-clients}") String allowClients,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
             @Value("${sms.gateway.crypto.keypass}") String keyPass,
             @Value("${sms.gateway.kafka.brokers}") String kafkaBrokers,
@@ -61,6 +64,8 @@ public class SmsGatewayConfiguration {
         LOG.debug("Constructing SmsGatewayConfiguration with CamelContext '{}'", camelContext.getName());
         this.camelContext = camelContext;
 
+        allowedClients = allowClients.split(" *, *");
+        
         vaultKeystore = keyStore;
         vaultKeypass = keyPass;
         
@@ -97,7 +102,11 @@ public class SmsGatewayConfiguration {
     public HostnameVerifier getNoopHostnameVerifier() {
         return NoopHostnameVerifier.INSTANCE;
     }
-    
+   
+    @Bean RequestProcessor getRequestProcessor() {
+        return new RequestProcessor(allowedClients);
+    }
+
     @Bean
     public VodaRequestProducer getVodaRequestProducer() {
         return new VodaRequestProducer(vodacomWaspUsername, vodacomWaspPassword);

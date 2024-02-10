@@ -8,13 +8,13 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 
 import java.time.Instant;
+import java.util.Arrays;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,10 +35,16 @@ import it.zwets.sms.gateway.dto.SendSmsRequest;
  * 
  * Does nothing if the sms-status is already set on entry.
  */
-@Component
 public class RequestProcessor implements Processor {
     
     private static final Logger LOG = LoggerFactory.getLogger(RequestProcessor.class);
+    
+    private final String[] allowedClients;
+    
+    public RequestProcessor(String[] allowedClients) {
+        LOG.debug("Constructing with allowed clients: {}", String.join(", ", allowedClients));
+        this.allowedClients = allowedClients;
+    }
 
     @Override
     public void process(Exchange exchange) {
@@ -66,6 +72,9 @@ public class RequestProcessor implements Processor {
                     msg.setHeader(HEADER_CLIENT_ID, req.clientId());
                     msg.setHeader(HEADER_CORREL_ID, req.correlId());
                     
+                    if (Arrays.stream(allowedClients).noneMatch(req.clientId()::equals)) {
+                        msg.setHeader(HEADER_ERROR_TEXT, "Client ID is unknown or disallowed");
+                    }
                     if (req.payload() == null) {
                         msg.setHeader(HEADER_ERROR_TEXT, "Request lacks Payload field");
                     }

@@ -5,7 +5,6 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CORR
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
-import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 
 import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
@@ -67,12 +66,8 @@ public class SmsRouter extends RouteBuilder {
                     .to(RESPOND)
                 .when(header(HEADER_CLIENT_ID).isEqualTo("test"))
                     .to(TestClientRoute.TEST_ROUTE)
-                .when(header(HEADER_CLIENT_ID).isEqualTo("live"))
-                    .to(backend)
                 .otherwise()
-                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
-                    .setHeader(HEADER_ERROR_TEXT, constant("Client not yet supported"))
-                    .to(RESPOND);
+                    .to(backend);
                     
         from(RESPOND).routeId("response")
             .process(responseProducer)

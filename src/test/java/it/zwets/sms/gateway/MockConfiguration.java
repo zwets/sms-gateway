@@ -11,19 +11,23 @@ import org.springframework.context.annotation.Configuration;
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
+import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.VodaRequestProducer;
 import it.zwets.sms.gateway.comp.VodaResponseProcessor;
 
 @Configuration
 public class MockConfiguration {
 
+    private final String[] allowedClients;
     private final String vaultKeystore;
     private final String vaultKeypass;
 
     public MockConfiguration(
+            @Value("${sms.gateway.allowed-clients}") String allowClients,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
             @Value("${sms.gateway.crypto.keypass}") String keyPass) 
     {
+        allowedClients = allowClients.split(" *, *");
         vaultKeystore = keyStore;
         vaultKeypass = keyPass;
     }
@@ -78,6 +82,15 @@ public class MockConfiguration {
     public Endpoint getBackEndRequestEndpoint(CamelContext camelContext) {
         // Not currently invoked from the unit tests.
         return camelContext.getEndpoint("log:BACKEND_DUMMY_FOR_NOW");
+    }
+
+    /**
+     * The RequestProcessor, as in the normal configuration
+     * @return
+     */
+    @Bean 
+    RequestProcessor getRequestProcessor() {
+        return new RequestProcessor(allowedClients);
     }
 
     /**

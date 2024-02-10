@@ -22,14 +22,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import it.zwets.sms.crypto.PkiUtils;
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
-import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.ResponseProducer;
 import it.zwets.sms.gateway.dto.SendSmsRequest;
 import it.zwets.sms.gateway.dto.SmsMessage;
 import it.zwets.sms.gateway.routes.SmsRouter;
 import it.zwets.sms.gateway.routes.TestClientRoute;
 
-@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, TestClientRoute.class, RequestProcessor.class, ResponseProducer.class} /* properties = specific properties */)
+@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, TestClientRoute.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
 @DisableJmx
@@ -165,6 +164,16 @@ public class SmsGatewayServiceTest {
         template.sendBody(makeSmsRequest(Instant.now().minusMillis(100), "no content"));
         
         response.assertIsSatisfied();
+    }
+
+    @Test
+    public void invalidOnDisallowedClient() throws InterruptedException {
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        
+        template.sendBody(new SendSmsRequest("notaclient", CORREL_ID, makeDeadline(1000), dummyPayload()));
+        
+        response.assertIsSatisfied();        
     }
 
     @Test
