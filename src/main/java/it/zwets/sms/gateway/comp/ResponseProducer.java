@@ -8,6 +8,7 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_TIMESTAMP;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -38,7 +39,7 @@ public class ResponseProducer implements Processor {
         
         String clientId = msg.getHeader(HEADER_CLIENT_ID, String.class);
         String correlId = msg.getHeader(HEADER_CORREL_ID, String.class);
-        String timeStamp = msg.getHeader(HEADER_TIMESTAMP, Instant.now().toString(), String.class);
+        String timeStamp = msg.getHeader(HEADER_TIMESTAMP, Instant.now(), Instant.class).truncatedTo(ChronoUnit.SECONDS).toString();
         String smsStatus = msg.getHeader(HEADER_SMS_STATUS, String.class);
         String recallId = msg.getHeader(HEADER_RECALL_ID, String.class);
         String errorText = msg.getHeader(HEADER_ERROR_TEXT, String.class);

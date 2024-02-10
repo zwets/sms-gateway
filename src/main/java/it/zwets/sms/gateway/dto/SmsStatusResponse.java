@@ -13,5 +13,14 @@ public record SmsStatusResponse(
         @JsonProperty(Constants.OUT_FIELD_TIMESTAMP) String timeStamp,
         @JsonProperty(Constants.OUT_FIELD_SMS_STATUS) String smsStatus,
         @JsonProperty(Constants.OUT_FIELD_RECALL_ID) String recallId,
-        @JsonProperty(Constants.OUT_FIELD_ERROR_TEXT) String errorText) { }
+        @JsonProperty(Constants.OUT_FIELD_ERROR_TEXT) String errorText) {
+    
+    private static String b(String s) {
+        return s == null ? "" : s;
+    }
+    
+    public String asTsv() {
+        return "%s\t%s\t%s\t%s\t%s\t%s\n".formatted(b(timeStamp), b(clientId), b(correlId), b(smsStatus), b(recallId), b(errorText));
+    }
+}
        

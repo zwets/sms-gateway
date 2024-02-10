@@ -352,14 +352,20 @@ public class SmsGatewayServiceTest {
     }
 
     @Test
-    public void invalidOnNoMarker() throws InterruptedException {
+    public void happyFlowOnNoMarker() throws InterruptedException {
 
-        response.expectedMessageCount(1);
+
+        response.expectedMessageCount(2);
+        
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
-        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
-        response.message(0).jsonpath("$['error-text']").isNotNull();
-        
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
+
         template.sendBody(makeSmsRequest("Nothing special in the message"));
         
         response.assertIsSatisfied();

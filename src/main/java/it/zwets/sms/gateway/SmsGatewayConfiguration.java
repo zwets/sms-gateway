@@ -34,6 +34,7 @@ public class SmsGatewayConfiguration {
     private final CamelContext camelContext;
 
     private final String[] allowedClients;
+    private final String clientLogDir;
     private final String vaultKeystore;
     private final String vaultKeypass;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
@@ -51,6 +52,7 @@ public class SmsGatewayConfiguration {
      */
     public SmsGatewayConfiguration(CamelContext camelContext,
             @Value("${sms.gateway.allowed-clients}") String allowClients,
+            @Value("${sms.gateway.client-log.dir}") String clientLog,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
             @Value("${sms.gateway.crypto.keypass}") String keyPass,
             @Value("${sms.gateway.kafka.brokers}") String kafkaBrokers,
@@ -65,6 +67,8 @@ public class SmsGatewayConfiguration {
         this.camelContext = camelContext;
 
         allowedClients = allowClients.split(" *, *");
+        
+        clientLogDir = clientLog;
         
         vaultKeystore = keyStore;
         vaultKeypass = keyPass;
@@ -97,7 +101,12 @@ public class SmsGatewayConfiguration {
     public Endpoint backendRequestEndpoint() {
         return camelContext.getEndpoint(VodaWaspRoute.VODA_WASP_ROUTE);
     }
-    
+
+    @Bean(Constants.ENDPOINT_CLIENT_LOG)
+    public Endpoint clientLogEndpoint() {
+        return camelContext.getEndpoint("file://%s?fileExist=append".formatted(clientLogDir));
+    }
+
     @Bean("NoopHostnameVerifier")
     public HostnameVerifier getNoopHostnameVerifier() {
         return NoopHostnameVerifier.INSTANCE;
@@ -137,6 +146,7 @@ public class SmsGatewayConfiguration {
         public static final String ENDPOINT_FRONTEND_REQUEST = "frontEndRequest";
         public static final String ENDPOINT_FRONTEND_RESPONSE = "frontEndResponse";
         public static final String ENDPOINT_BACKEND_REQUEST = "backEndRequest";
+        public static final String ENDPOINT_CLIENT_LOG = "clientLog";
         
         // Incoming message fields
         

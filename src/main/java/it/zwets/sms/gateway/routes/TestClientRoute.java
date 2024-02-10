@@ -4,7 +4,6 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERRO
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_DELIVERED;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
-import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 import static org.apache.camel.LoggingLevel.INFO;
 
@@ -101,8 +100,10 @@ public class TestClientRoute extends RouteBuilder {
                     .to(DELAY_RESPOND)
                 .otherwise()
                     .log(INFO, LOG, "test route: no marker found in body")
-                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
-                    .setHeader(HEADER_ERROR_TEXT, constant("Test body without S1D1 or other token"))
-                    .to(SmsRouter.RESPOND);
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
+                    .to(SmsRouter.RESPOND)
+                    .log(INFO, LOG, "S1D1: responding DELIVERED second")
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_DELIVERED))
+                    .to(DELAY_RESPOND);
     }
 }

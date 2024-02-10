@@ -8,6 +8,7 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_
 
 import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
+import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.slf4j.Logger;
@@ -35,6 +36,9 @@ public class SmsRouter extends RouteBuilder {
 
     @EndpointInject(Constants.ENDPOINT_BACKEND_REQUEST)
     private Endpoint backend;
+    
+    @EndpointInject(Constants.ENDPOINT_CLIENT_LOG)
+    private Endpoint clientLog;
 
     @Autowired
     private RequestProcessor requestProcessor;
@@ -44,6 +48,8 @@ public class SmsRouter extends RouteBuilder {
     
     @Autowired
     private ResponseProducer responseProducer;
+    
+    private static final String RESPONSE_TSV = "responseTsv";
     
     @Override
     public void configure() throws Exception {
@@ -73,8 +79,12 @@ public class SmsRouter extends RouteBuilder {
             .process(responseProducer)
             .filter(header(HEADER_CLIENT_ID).isNotNull())
             .filter(header(HEADER_CORREL_ID).isNotNull())
+            .setHeader(Exchange.FILE_NAME, header(HEADER_CLIENT_ID).append(".log"))
+            .setHeader(RESPONSE_TSV, simple("${body.asTsv()}"))
             .marshal().json()
-            .to(frontOut);
+            .to(frontOut)
+            .setBody(header(RESPONSE_TSV))
+            .to(clientLog);
         
     }
 }

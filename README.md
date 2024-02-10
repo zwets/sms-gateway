@@ -190,6 +190,11 @@ Create config dir
     chown root:smeg config &&
     chmod 0750 config
 
+Create directory for per-client logs
+
+    mkdir /var/log/sms-gateway
+    chown smeg:adm /var/log/sms-gateway
+
 Add the application properties to config
 
     vi config/application-prod.properties &&

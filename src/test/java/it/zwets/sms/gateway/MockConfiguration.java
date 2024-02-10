@@ -19,15 +19,18 @@ import it.zwets.sms.gateway.comp.VodaResponseProcessor;
 public class MockConfiguration {
 
     private final String[] allowedClients;
+    private final String clientLogDir;
     private final String vaultKeystore;
     private final String vaultKeypass;
 
     public MockConfiguration(
             @Value("${sms.gateway.allowed-clients}") String allowClients,
+            @Value("${sms.gateway.client-log.dir}") String clientLog,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
             @Value("${sms.gateway.crypto.keypass}") String keyPass) 
     {
         allowedClients = allowClients.split(" *, *");
+        clientLogDir = clientLog;
         vaultKeystore = keyStore;
         vaultKeypass = keyPass;
     }
@@ -82,6 +85,11 @@ public class MockConfiguration {
     public Endpoint getBackEndRequestEndpoint(CamelContext camelContext) {
         // Not currently invoked from the unit tests.
         return camelContext.getEndpoint("log:BACKEND_DUMMY_FOR_NOW");
+    }
+
+    @Bean(Constants.ENDPOINT_CLIENT_LOG)
+    public Endpoint clientLogEndpoint(CamelContext camelContext) {
+        return camelContext.getEndpoint("file://%s?fileExist=append".formatted(clientLogDir));
     }
 
     /**
