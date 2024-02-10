@@ -18,9 +18,9 @@ export USAGE="${USAGE:-}
   COMMON OPTIONS
    -b,--broker=BROKER  Set the broker host:port [$BROKER]
    -t,--topic=TOPIC    Set the topic [$TOPIC]
-   -p,--partition=P    Set the partition [$PARTITION]
+   -p,--partition=PARTITION  Set the partition [$PARTITION]
    -k,--key=KEY        Set the event key [$EVENTKEY]
-   -g,--group=GID      Group ID of client [$GROUPID]
+   -g,--group=GROUP    Group ID of client [$GROUPID]
    -o,--offset=OFFSET  Start reading at offset [$OFFSET]
    -a,--all            Read the topic from the beginning
    -d,--dump           Write input to stderr / full output
@@ -33,7 +33,7 @@ export USAGE="${USAGE:-}
 # General functions
 
 emit() { [ ! $VERBOSE ] || echo "${0##*/}: $*" >&2; }
-usage_exit() { echo "Usage: ${0##*/} [-dvha] [-b BROKER ] [-t TOPIC] [-p PARTITION] [-k KEY] [-g GROUP] [-o OFFSET] ${USAGE}" >&2; exit ${1:-1}; }
+usage_exit() { echo "Usage: ${0##*/} [-dvhra] [-b BROKER ] [-t TOPIC] [-p PARTITION] [-k KEY] [-g GROUP] [-o OFFSET] ${USAGE}" >&2; exit ${1:-1}; }
 err_exit() { echo "${0##*/}: $*" >&2; exit 1; }
 
 # Check common options
