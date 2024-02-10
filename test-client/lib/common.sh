@@ -10,6 +10,7 @@ export EVENTKEY="${EVENTKEY:-}"
 export GROUPID="${GROUPID:-}"
 export OFFSET="${OFFSET:-}"
 export DUMP=${DUMP:-}
+export RAWOUT=${RAWOUT:-}
 export VERBOSE=${VERBOSE:-}
 
 export USAGE="${USAGE:-}
@@ -23,6 +24,7 @@ export USAGE="${USAGE:-}
    -o,--offset=OFFSET  Start reading at offset [$OFFSET]
    -a,--all            Read the topic from the beginning
    -d,--dump           Write input to stderr / full output
+   -r,--raw            Do not filter output through JQ
    -v,--verbose        Display diagnostic output
    -h,--help           Display usage information
 
@@ -36,7 +38,7 @@ err_exit() { echo "${0##*/}: $*" >&2; exit 1; }
 
 # Check common options
 
-TEMP=$(getopt -n "${0##*/}" -o 'hvdab:t:p:k:g:o:' -l 'help,verbose,dump,all,broker,topic,partition,key,group,offset' -- "$@" || exit 1)
+TEMP=$(getopt -n "${0##*/}" -o 'hvdarb:t:p:k:g:o:' -l 'help,verbose,dump,all,raw,broker,topic,partition,key,group,offset' -- "$@" || exit 1)
 eval set -- "$TEMP"
 unset TEMP
 
@@ -53,6 +55,7 @@ while true; do
         -a|--a*)      OFFSET='beginning';  shift ;;
         -v|--v*)      VERBOSE=1;           shift ;;
         -d|--d*)      DUMP=1;              shift ;;
+        -r|--r*)      RAWOUT=1;            shift ;;
         -h|--h*)      usage_exit 0  ;;
         --) shift; break ;;
         *)  err_exit "lpt1 on fire!" ;;
@@ -74,18 +77,22 @@ KCAT="$(which kcat 2>/dev/null)" || KCAT="$(which kafkacat 2>/dev/null)" || err_
 JQ="$(which jq 2>/dev/null)" || err_exit "command not found: jq (do: apt install jq)"
 
 dump_input() {
-    [ $DUMP ] && $JQ . "$@" | tee /dev/stderr || cat "$@"
+    [ $DUMP ] && "$JQ" . "$@" | tee /dev/stderr || cat "$@"
+}
+
+format_out() {
+    [ $RAWOUT ] && cat || "$JQ" .
 }
 
 # Kafka (kcat) functions
 
 kcat_send() {
     F="${1:--}" && [ "$F" = '-' ] || [ -f "$F" ] || err_exit "no such file: $F"
-    dump_input "$F" | tr '\n' ' ' | $KCAT -P -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${EVENTKEY:+-k} $EVENTKEY -c 1 ${VERBOSE:+-v} "$@"
+    dump_input "$F" | tr '\n' ' ' | "$KCAT" -P -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${EVENTKEY:+-k} $EVENTKEY -c 1 ${VERBOSE:+-v} "$@"
 }
 
 kcat_listen() {
-    $KCAT -C -u -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | $JQ .
+    "$KCAT" -C -u -b "$BROKER" -t "$TOPIC" ${PARTITION:+-p $PARTITION} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | format_out
 }
 
 # vim: sts=4:sw=4:ai:si:et

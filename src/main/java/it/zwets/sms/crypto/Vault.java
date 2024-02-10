@@ -104,11 +104,6 @@ public class Vault {
 			    keyStore = KeyStore.getInstance(new File(keyStoreFileName), keyStorePassword);
 			}
 			
-			if (LOG.isDebugEnabled()) {
-			    StringBuffer ss = new StringBuffer("Aliases:");
-			    keyStore.aliases().asIterator().forEachRemaining(s -> ss.append(' ').append(s));
-			    LOG.debug("Aliases: ".formatted(ss.toString()));
-			}
 			return keyStore;
 			
 		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {

@@ -13,6 +13,7 @@ public class SmsGatewayService {
     
     private static final Logger LOG = LoggerFactory.getLogger(SmsGatewayService.class);
 
+    @SuppressWarnings("unused")
     private final CamelContext camelContext;
     
     public SmsGatewayService(CamelContext camelContext) {
