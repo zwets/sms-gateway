@@ -381,7 +381,7 @@ public class SmsGatewayServiceTest {
 
     private SendSmsRequest makeSmsRequest(String deadline, String message) {
         SmsMessage sms = new SmsMessage(message);
-        sms.setHeader("To", "123456789");
+        sms.setHeader("To", "+123456789");
         sms.setHeader("Sender", "NO SENDER");
         
         return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, encryptPayload(CLIENT_ID, sms.asBytes()));
@@ -398,7 +398,7 @@ public class SmsGatewayServiceTest {
     private String dummyPayload() {
         if (cachedDummyPayload == null) {
             SmsMessage sms = new SmsMessage("Dummy Message");
-            sms.setHeader("To", "123456789");
+            sms.setHeader("To", "+123456789");
             sms.setHeader("Sender", "NO SENDER");
             cachedDummyPayload = encryptPayload(CLIENT_ID, sms.asBytes());
         }

@@ -99,10 +99,10 @@ public class TestClientRoute extends RouteBuilder {
                     .setHeader(HEADER_ERROR_TEXT, constant("You requested this to FAIL"))
                     .to(DELAY_RESPOND)
                 .otherwise()
-                    .log(INFO, LOG, "test route: no marker found in body")
+                    .log(INFO, LOG, "test route: no marker: respond SENT first")
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
                     .to(SmsRouter.RESPOND)
-                    .log(INFO, LOG, "S1D1: responding DELIVERED second")
+                    .log(INFO, LOG, "test route: no marker: responding DELIVERED second")
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_DELIVERED))
                     .to(DELAY_RESPOND);
     }

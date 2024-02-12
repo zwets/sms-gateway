@@ -3,11 +3,11 @@ package it.zwets.sms.gateway.comp;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CLIENT_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
-import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_HEADER_SENDER;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_HEADER_TO;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 
 import java.util.Base64;
+import java.util.regex.Pattern;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -34,6 +34,7 @@ import it.zwets.sms.gateway.dto.SmsMessage;
 public class PayloadDecoder implements Processor {
     
     private static final Logger LOG = LoggerFactory.getLogger(PayloadDecoder.class);
+    private static final Pattern RECIPIENT_REGEX = Pattern.compile("^\\+\\d+$");
     private final Vault vault;
 
     public PayloadDecoder(Vault vault) {
@@ -58,11 +59,16 @@ public class PayloadDecoder implements Processor {
                 byte[] bytes = Base64.getDecoder().decode(req.payload());
                 sms.read(vault.decrypt(clientId, bytes));
     
-                if (!sms.hasHeader(SMS_HEADER_TO)) {
-                    msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks field: %s".formatted(SMS_HEADER_TO));
+                String recipient = sms.getHeader(SMS_HEADER_TO);
+                
+                if (recipient == null) {
+                    msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks recipient '%s' field".formatted(SMS_HEADER_TO));
                 }
-                else if (!sms.hasHeader(SMS_HEADER_SENDER)) {
-                    msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks field: %s".formatted(SMS_HEADER_SENDER));
+                else if (!recipient.startsWith("+")) {
+                    msg.setHeader(HEADER_ERROR_TEXT, "SMS recipient not a full international number: %s".formatted(recipient));
+                }
+                else if (!RECIPIENT_REGEX.matcher(recipient).matches()) {
+                    msg.setHeader(HEADER_ERROR_TEXT, "SMS recipient not a valid number: %s".formatted(recipient));
                 }
                 else if (sms.getBody() == null || sms.getBody().length() == 0) {
                     msg.setHeader(HEADER_ERROR_TEXT, "SMS body is empty");

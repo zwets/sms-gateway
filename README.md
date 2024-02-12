@@ -37,7 +37,7 @@ It asynchronously reports back status changes to the scheduler.
 > and confidentiality _up to the moment the SMS reaches the provider_.
 
 
-## Implementation
+## Interface
 
 The SMS Gateway consumes from an incoming Kafka topic `send-sms` and
 produces status updates on an outgoing topic `sms-status`.  It is built on
@@ -56,36 +56,37 @@ Request messages on topic `send-sms` must have this JSON structure:
 }
 ```
 
-The payload, when decrypted, has the classic structure: one or more
+The payload field, when decrypted, has the classic structure: one or more
 headers, followed by an empty line, followed by the body:
 
-    To: 31629845432
+    To: +31629845432
     Sender: name or number
 
     Here is the content.
 
-At least the `To` header and body must be present.  Other headers may be
-required depending on backend; excess headers are ignored.  The `SmsMessage`
-class captures this logic.
+At least the `To` header and body must be present.  The value of the `To`
+header must be a full international number with the `+` prefix.  Other
+headers may be required depending on backend.  Excess headers are ignored.
 
-#### Encryption
+### Encryption
 
 Encryption and decryption work as follows:
 
  * The SMS Gateway has a (configurable) "vault", a Java keystore that holds
    a key pair for each client
- * The [sms-crypto](https://github.com/zwets/sms-crypto) CLI tool can be
-   used to manage the vaults
- * The SMS Gateway comes with a default vault packaged in the JAR; this
+ * The [sms-client](https://github.com/zwets/sms-client) CLI tool can be
+   used to manage vaults
+ * The SMS Gateway comes with a default vault packaged in the JAR.  This
    vault has a key pair for the 'test' client (see [Testing](#testing) below)
  * For integration testing and production, either copy the default vault or
    create a new vault, add a key pair for every client, then
    * Place the vault in a non-world-readable place on the file system
    * Configure its location in the application properties for your profile
    (see [Configuration](#configuration) below)
- * To connect a client, retrieve the public key for that client from your
-   vault with the `sms-crypto` CLI tool, and make the client encrypt the
-   payload in each request with that public key (see the `PkiUtils` class).
+ * To connect a client, give it its public key (retrieved from the vault with
+   the `sms-client` CLI tool), and make the client encrypt the payload in each
+   request with that public key.
+   * Support code for encrypting is in the PkiUtils class in `sms-client`
 
 ### Response
 
@@ -95,7 +96,7 @@ Response messages on topic `sms-status` have this JSON structure:
 {
     "client-id": client ID from request
     "correl-id": correlation ID from request
-    "timestamp": ISO-8601 instant
+    "timestamp": ISO-8601 instant the messge was processed
     "sms-status": SENT, DELIVERED, EXPIRED, INVALID, FAILED
     "recall-id": optional field with backend correlation
     "error-text": optional field with error description

@@ -29,14 +29,14 @@ import org.slf4j.LoggerFactory;
  * Header names must start with a word character (A-Za-z0-9_) and be followed
  * by zero or more word characters and/or dashes (-).
  * 
- * Header values may contain any number of characters except newlines or line
- * breaks.  Any whitespace at either end of a value is trimmed.  Setting a header
+ * Header values may contain any non-zero number of characters except newlines
+ * or line breaks.  Whitespace at either end of a value is trimmed.  Setting a
  * value to null or the empty string removes the header with a logged warning.
  * 
  * The message body may contain any number of characters, including zero.
  *
  * All methods on this class make sure that the above invariants remain true,
- * and throw the unchecked {@ SmsException} if they would be violated.
+ * and throw {@link IllegalArgumentException} if they would be violated.
  * 
  * @author zwets
  */
@@ -44,10 +44,10 @@ public class SmsMessage implements Serializable {
 
 	private static final Logger LOG = LoggerFactory.getLogger(SmsMessage.class);
 	private static final long serialVersionUID = 1L;
-	private static final String EMPTY_BODY = "".intern();
 	private static final Pattern HEADER_NAME_REGEX = Pattern.compile("^\\w[\\w-]*$");
 	private static final Pattern HEADER_REGEX = Pattern.compile("^(\\w[\\w-]*)\\s*:\\s*(.*\\S?)\\s*$");
 	private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+    private static final String EMPTY_BODY = "".intern();
 
 	private Map<String,String> headers = new HashMap<String,String>();
 	private String body = EMPTY_BODY;
@@ -68,7 +68,7 @@ public class SmsMessage implements Serializable {
 	 * Create SmsMessage with a copy of the given headers and empty body.
 	 * @param headers the headers to set
 	 * @param body the text body of the message
-	 * @throws SmsException if any header violates requirements
+	 * @throws IllegalArgumentException if any header violates requirements
 	 */
 	public SmsMessage(Map<String,String> headers) {
 		this.setHeaders(headers);
@@ -78,7 +78,7 @@ public class SmsMessage implements Serializable {
 	 * Create SmsMessage with a copy of the given headers and body
 	 * @param headers the headers to set
 	 * @param body the text body of the message
-	 * @throws SmsException if any header violates requirements
+	 * @throws IllegalArgumentException if any header violates requirements
 	 */
 	public SmsMessage(Map<String,String> headers, String body) {
 		this.setHeaders(headers);
@@ -96,7 +96,7 @@ public class SmsMessage implements Serializable {
 	/**
 	 * Set the headers on the message, adding to current headers.
 	 * @param headers
-	 * @throws SmsException if any header violates requirements
+	 * @throws IllegalArgumentException if any header violates requirements
 	 */
 	public void setHeaders(Map<String,String> headers) {
 		for (Entry<String,String> entry : headers.entrySet()) {
@@ -132,7 +132,7 @@ public class SmsMessage implements Serializable {
 	 * with a logged warning.
 	 * @param header name of the header, may contain any of A-Z, a-z, 0-9, dash, underscore
 	 * @param value any content except newline or line break, will be trimmed
-	 * @throws SmsException when header has invalid syntax
+	 * @throws IllegalArgumentException when header has invalid syntax
 	 */
 	public void setHeader(String header, String value) {
 

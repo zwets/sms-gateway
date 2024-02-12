@@ -31,8 +31,8 @@ import it.zwets.sms.gateway.dto.VodaRequest;
 public class VodaRequestProducer implements Processor {
     
     private static final Logger LOG = LoggerFactory.getLogger(VodaRequestProducer.class);
-    private static final Pattern RECIPIENT_REGEX = Pattern.compile("^255\\d{9}$");
-    private static final Pattern SENDER_REGEX = Pattern.compile("^.{0,11}$");
+    private static final Pattern RECIPIENT_REGEX = Pattern.compile("^\\+255\\d{9}$");
+    private static final Pattern SENDER_REGEX = Pattern.compile("^.{1,11}$");
 
     private final String username;
     private final String password;
@@ -63,20 +63,23 @@ public class VodaRequestProducer implements Processor {
             if (recipient == null) {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks recipient");
             }
+            else if (!recipient.startsWith("+255")) {
+                msg.setHeader(HEADER_ERROR_TEXT, "Vodacom backend disallows foreign SMS recipient: %s".formatted(recipient));
+            }
             else if (!RECIPIENT_REGEX.matcher(recipient).matches()) {
-                msg.setHeader(HEADER_ERROR_TEXT, "SMS recipient format invalid: %s".formatted(recipient));
+                msg.setHeader(HEADER_ERROR_TEXT, "SMS recipient number invalid for Vodacom backend: %s".formatted(recipient));
             }
             else if (sender == null) { 
-                msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks sender");
+                msg.setHeader(HEADER_ERROR_TEXT, "Vodacom backend requires a message sender");
             }
             else if (!SENDER_REGEX.matcher(sender).matches()) {
-                msg.setHeader(HEADER_ERROR_TEXT, "SMS sender format invalid: %s".formatted(sender));
+                msg.setHeader(HEADER_ERROR_TEXT, "SMS sender does not have a 1-11 character length: %s".formatted(sender));
             }
             else if (message == null || message.isBlank()) {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS message is empty");
             }
             else {
-                VodaRequest vodaReq = new VodaRequest(username, password, sender, recipient, message);
+                VodaRequest vodaReq = new VodaRequest(username, password, sender, recipient.substring(1), message);
                 LOG.debug("Setting body to VodaRequest: %s".formatted(vodaReq));
                 msg.setBody(vodaReq);
             }
