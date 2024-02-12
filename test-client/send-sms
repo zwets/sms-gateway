@@ -6,9 +6,9 @@ export LC_ALL="C"
 set -euo pipefail
 
 # Source the defaults, see lib/defaults.sh.example
-. "$(dirname "$(realpath "$0")")/lib/defaults.sh"
+. "$(dirname "$(realpath "$0")")/lib/defaults"
 
-# The functions in common.sh will display this
+# The functions in kafka-lib.sh will display this
 USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 
   Send an SMS over Kafka to the SMS Gateway
@@ -22,7 +22,8 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
    RECIPIENT  Destination number [$RECIPIENT]
    FILE       File to be sent or '-' for stdin"
 
-. "$(dirname "$(realpath "$0")")/lib/common.sh"
+. "$(dirname "$(realpath "$0")")/lib/kafka-lib.sh"
+. "$(dirname "$(realpath "$0")")/lib/crypto-lib.sh"
 
 # Parse the optional arguments
 (( $# == 7 )) && PUBKEY="$1" && shift || true
@@ -33,17 +34,20 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 (( $# == 2 )) && RECIPIENT="$1" && shift || true
 (( $# == 1 )) && FILE="$1" && shift || FILE='-'
 
-# Need the sms-client for encrypting the payload
-[ -n "${SMS_CLIENT:-}" ] ||
-SMS_CLIENT="$(realpath -e "$(dirname "$(realpath "$0")")/../../sms-client/bin/sms-client" 2>/dev/null)" ||
-SMS_CLIENT="/opt/sms-client/bin/sms-client" ||
-    err_exit "sms-client not found: $SMS_CLIENT"
-
 # Read the PUBKEY from PUBFILE
 PUBKEY="$(cat "$PUBFILE")" || err_exit "failed to read pubkey file: $PUBFILE"
 
 # Produce the encrypted payload for CLIENT
-PAYLOAD="$({ printf 'To: %s\nSender: %s\n\n' "$RECIPIENT" "$SENDER"; cat "$FILE"; } | "$SMS_CLIENT" encrypt "$PUBKEY")"
+PAYLOAD="$(encrypted_sms "$PUBKEY" "$RECIPIENT" "$SENDER" "$FILE")" || err_exit "failed to produce encrypted SMS"
+
+# Dump the standard diags
+dump_diags
+emit "PUBFILE   = $PUBFILE"
+emit "CLIENT    = $CLIENT"
+emit "CORREL    = $CORREL"
+emit "DEADLINE  = $DEADLINE"
+emit "SENDER    = $SENDER"
+emit "RECIPIENT = $RECIPIENT"
 
 # Produce the message and pipe it onto the topic
 printf '{ "client-id": "%s", "correl-id": "%s", "deadline": "%s", "payload": "%s" }\n' \

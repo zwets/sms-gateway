@@ -1,5 +1,5 @@
-# Copy this file to 'defaults.sh' and set the defaults to your liking.
-# These are used as fallbacks for options that are omitted in the scripts.
+# Copy this file to 'defaults' and set the defaults to your liking.
+# These are used as fallbacks for omitted options in ../*
 
 DEFAULT_BROKER='localhost:9092'
 DEFAULT_TOPIC='send-sms'

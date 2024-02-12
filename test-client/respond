@@ -5,7 +5,7 @@ set -euo pipefail
 
 TOPIC='sms-status'
 
-. "$(dirname "$(realpath "$0")")/lib/defaults.sh"
+. "$(dirname "$(realpath "$0")")/lib/defaults"
 
 USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
 
@@ -17,9 +17,9 @@ USAGE="CLIENT CORREL STATUS [ERRTEXT ...]
    STATUS   Status to report back (SENT, etc)
    ERRTEXT  Optional error text (rest of line)"
 
-. "$(dirname "$(realpath "$0")")/lib/common.sh"
+. "$(dirname "$(realpath "$0")")/lib/kafka-lib.sh"
 
-(($# >= 1)) || usage_exit
+(($# >= 3)) || usage_exit
 
 CLIENT="$1"
 CORREL="$2"
