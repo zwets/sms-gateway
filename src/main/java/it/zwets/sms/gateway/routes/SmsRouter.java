@@ -49,7 +49,7 @@ public class SmsRouter extends RouteBuilder {
     @Autowired
     private ResponseProducer responseProducer;
     
-    private static final String RESPONSE_TSV = "responseTsv";
+    private static final String TSV_RECORD = "tsvRecord";
     
     @Override
     public void configure() throws Exception {
@@ -80,10 +80,10 @@ public class SmsRouter extends RouteBuilder {
             .filter(header(HEADER_CLIENT_ID).isNotNull())
             .filter(header(HEADER_CORREL_ID).isNotNull())
             .setHeader(Exchange.FILE_NAME, header(HEADER_CLIENT_ID).append(".log"))
-            .setHeader(RESPONSE_TSV, simple("${body.asTsv()}"))
+            .setHeader(TSV_RECORD, simple("${body.asTsv()}"))
             .marshal().json()
             .to(frontOut)
-            .setBody(header(RESPONSE_TSV))
+            .setBody(header(TSV_RECORD))
             .to(clientLog);
         
     }

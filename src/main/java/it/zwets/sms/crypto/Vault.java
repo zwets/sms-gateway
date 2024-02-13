@@ -2,7 +2,6 @@ package it.zwets.sms.crypto;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -12,6 +11,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +67,21 @@ public class Vault {
 		this.keyStorePassword = password == null ? null : password.toCharArray();
 	}
 
+    /**
+     * Return the list of aliases.
+     * 
+     * @return the list of aliases in the keystore
+     * @throws RuntimeException for any underlying checked exception
+     */
+    public Iterator<String> getAliases() {
+        try {
+            return getKeyStore().aliases().asIterator();
+        } catch (KeyStoreException e) {
+            LOG.error("Exception getting aliases from {}: {}", keyStoreFileName, e.getMessage());
+            throw new RuntimeException(e.getMessage(), e.getCause());
+        }
+    }
+    
 	/**
 	 * Return the public key stored for the alias
 	 * 
@@ -75,7 +90,7 @@ public class Vault {
 	 * @throws RuntimeException for any underlying checked exception
 	 */
 	public PublicKey getPublicKey(String alias) {
-		return getKeyPair(alias).getPublic();
+	    return getEntry(alias).getCertificate().getPublicKey();
 	}
 
 	/**
@@ -105,7 +120,7 @@ public class Vault {
 			}
 			
 			return keyStore;
-			
+
 		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
 			LOG.error("Exception loading keystore {}: {}", keyStoreFileName, e.getMessage());
 			throw new RuntimeException(e.getMessage(), e.getCause());
@@ -114,19 +129,24 @@ public class Vault {
 
 	private PrivateKeyEntry getEntry(String alias) {
 		try {
-			return (PrivateKeyEntry) getKeyStore().getEntry(alias, new PasswordProtection(keyStorePassword));
+		    PrivateKeyEntry pke = (PrivateKeyEntry) getKeyStore().getEntry(alias, new PasswordProtection(keyStorePassword));
+		    if (pke == null) {
+	            LOG.error("No key in keystore for alias: {}", alias);
+		        throw new RuntimeException("No key in keystore for alias: %s".formatted(alias));
+		    }
+		    return pke;
 		} catch (NoSuchAlgorithmException | UnrecoverableEntryException | KeyStoreException e) {
 			LOG.error("Exception retrieving keystore entry '{}': {}", alias, e.getMessage());
 			throw new RuntimeException(e.getMessage(), e.getCause());
 		}
 	}
 	
-	private KeyPair getKeyPair(String alias) {
-		PrivateKeyEntry pke = getEntry(alias);
-		return new KeyPair(pke.getCertificate().getPublicKey(), pke.getPrivateKey());
-	}
+//	private KeyPair getKeyPair(String alias) {
+//		PrivateKeyEntry pke = getEntry(alias);
+//		return new KeyPair(pke.getCertificate().getPublicKey(), pke.getPrivateKey());
+//	}
 
 	private PrivateKey getPrivateKey(String alias) {
-		return getKeyPair(alias).getPrivate();
+		return getEntry(alias).getPrivateKey();
 	}
 }

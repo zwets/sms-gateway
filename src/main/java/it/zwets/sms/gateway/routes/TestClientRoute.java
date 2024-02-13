@@ -58,7 +58,7 @@ public class TestClientRoute extends RouteBuilder {
             .to(SmsRouter.RESPOND);
         
         from(DELAY_RESPOND).routeId("delayed-response")
-            .delay(longDelay)
+            .delay(longDelay).asyncDelayed()
             .to(SmsRouter.RESPOND);
 
         from(TEST_ROUTE).routeId("test")

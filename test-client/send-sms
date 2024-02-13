@@ -36,11 +36,9 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
 (( $# == 2 )) && RECIPIENT="$1" && shift || true
 (( $# == 1 )) && FILE="$1"      && shift || FILE='-'
 
-# Read the PUBKEY from PUBFILE
-PUBKEY="$(cat "$PUBFILE")" || err_exit "failed to read pubkey file: $PUBFILE"
-
 # Produce the encrypted payload for CLIENT
-PAYLOAD="$(encrypted_sms "$PUBKEY" "$RECIPIENT" "$SENDER" "$FILE")" || err_exit "failed to produce encrypted SMS"
+PAYLOAD="$(encrypted_sms "$PUBFILE" "$RECIPIENT" "$SENDER" "$FILE")" ||
+    err_exit "failed to produce encrypted SMS"
 
 # Dump the standard diags
 dump_diags
