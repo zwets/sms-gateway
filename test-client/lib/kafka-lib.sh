@@ -3,18 +3,7 @@
 export LC_ALL="C"
 set -euo pipefail
 
-export BROKER="${BROKER:-}"
-export TOPIC="${TOPIC:-}"
-export GROUPID="${GROUPID:-}"
-export PART="${PART:-}"
-export OFFSET="${OFFSET:-}"
-export KAFKAKEY="${KAFKAKEY:-}"
-export DUMP=${DUMP:-}
-export RAWOUT=${RAWOUT:-}
-export VERBOSE=${VERBOSE:-}
-export NOT_REALLY=${NOT_REALLY:-}
-
-export USAGE="${USAGE:-}
+USAGE="${USAGE:-}
 
   COMMON OPTIONS
    -b,--broker=BROKER   Set the broker host:port [$BROKER]
@@ -32,15 +21,13 @@ export USAGE="${USAGE:-}
 
   All CAPITALISED options can also be passed as environment vars
 "
-# General functions
+# Note how the usage_exit function pulls in the including script's USAGE string
 
-emit() { [ ! $VERBOSE ] || echo "${0##*/}: $*" >&2; }
 usage_exit() { echo "Usage: ${0##*/} [-adrnvh] [-b BROKER ] [-t TOPIC] [-g GROUPID] [-p PART] [-o OFFSET] [-k KAFKAKEY] ${USAGE}" >&2; exit ${1:-1}; }
-err_exit() { echo "${0##*/}: $*" >&2; exit 1; }
 
 # Check common options
 
-TEMP=$(getopt -n "${0##*/}" -o 'hvdarnb:t:g:p:o:k:' -l 'help,verbose,dump,all,raw,dry-run,broker,topic,group,partition,offset,key' -- "$@" || exit 1)
+TEMP=$(getopt -n "${0##*/}" -o 'adrnvhb:t:g:p:o:k:' -l 'all,dump,raw,dry-run,dry-run,verbose,help,broker:,topic:,group:,partition:,offset:,key:' -- "$@" || exit 1)
 eval set -- "$TEMP"
 unset TEMP
 
@@ -67,8 +54,8 @@ done
 
 # Check required params
 
-[ $NOT_REALLY ] || [ -n "$BROKER" ] || err_exit "BROKER must be specified; set DEFAULT_BROKER in lib/defaults.sh"
-[ $NOT_REALLY ] || [ -n "$TOPIC" ] || err_exit "TOPIC must be specified; set DEFAULT_TOPIC in lib/defaults.sh"
+[ $NOT_REALLY ] || [ -n "$BROKER" ] || err_exit "BROKER must be specified; set DEFAULT_BROKER in lib/defaults"
+[ $NOT_REALLY ] || [ -n "$TOPIC" ] || err_exit "TOPIC must be specified; set DEFAULT_TOPIC in lib/defaults"
 
 # Resolve necessary tools
 
@@ -80,32 +67,32 @@ JQ="$(which jq 2>/dev/null)" || err_exit "command not found: jq (do: apt install
 dump_diags() {
     emit "BROKER    = $BROKER"
     emit "TOPIC     = $TOPIC"
-    [ -z "$GROUPID" ]   || emit "GROUP     = $GROUPID"
+    [ -z "$GROUPID" ]   || emit "GROUPID   = $GROUPID"
     [ -z "$PART" ]      || emit "PART      = $PART"
     [ -z "$OFFSET" ]    || emit "OFFSET    = $OFFSET"
     [ -z "$KAFKAKEY" ]  || emit "KAFKAKEY  = $KAFKAKEY"
 }
 
-dump_input() {
-    [ $DUMP ] && "$JQ" . "$@" | tee /dev/stderr || cat "$@"
+json_filter() {
+    [ $RAWOUT ] && cat "$@" || "$JQ" . "$@"
 }
 
-format_out() {
-    [ $RAWOUT ] && cat || "$JQ" .
+dump_filter() {
+    [ $DUMP ] && json_filter "$@" | tee /dev/stderr || cat "$@"
 }
 
 # Kafka (kcat) functions
 
 kcat_send() {
     F="${1:--}" && [ "$F" = '-' ] || [ -f "$F" ] || err_exit "no such file: $F"
-    dump_input "$F" | tr '\n' ' ' | if [ $NOT_REALLY ]; then cat >/dev/null; else
+    dump_filter "$F" | tr '\n' ' ' | if [ $NOT_REALLY ]; then cat >/dev/null; else
         "$KCAT" -P -b "$BROKER" -t "$TOPIC" ${PART:+-p $PART} ${GROUPID:+-G $GROUPID} ${KAFKAKEY:+-k} $KAFKAKEY -c 1 ${VERBOSE:+-v} "$@"
     fi
 }
 
 kcat_listen() {
     [ $NOT_REALLY ] && emit "not going to listen (dry run)" && exit 0 || true
-    "$KCAT" -C -u -b "$BROKER" -t "$TOPIC" ${PART:+-p $PART} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | format_out
+    "$KCAT" -C -u -b "$BROKER" -t "$TOPIC" ${PART:+-p $PART} ${GROUPID:+-G $GROUPID} ${DUMP:+-J} ${VERBOSE:+-v} ${OFFSET:+ -o $OFFSET} "$@" | json_filter
 }
 
 # vim: sts=4:sw=4:ai:si:et

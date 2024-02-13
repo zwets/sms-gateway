@@ -5,13 +5,14 @@ set -euo pipefail
 
 TOPIC='send-sms'
 
-. "$(dirname "$(realpath "$0")")/lib/defaults"
+LIB_DIR="$(dirname "$(realpath "$0")")/lib"
+. "$LIB_DIR/settings.sh"
 
 USAGE="
 
   Listen on the request topic ($TOPIC)"
 
-. "$(dirname "$(realpath "$0")")/lib/kafka-lib.sh"
+. "$LIB_DIR/kafka-lib.sh"
 
 (($# == 0)) || usage_exit
 

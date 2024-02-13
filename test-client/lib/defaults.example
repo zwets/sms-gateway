@@ -1,22 +1,15 @@
-# Copy this file to 'defaults' and set the defaults to your liking.
-# These are used as fallbacks for omitted options in ../*
+# Copy this file to 'defaults' and set the defaults for your environment
+# These are used as fallbacks for options omitted in the scripts using this LIB
 
+# Kafka defaults
 DEFAULT_BROKER='localhost:9092'
 DEFAULT_TOPIC='send-sms'
+
+# Request defaults
 DEFAULT_CLIENT='test'
 DEFAULT_DEADLINE='2100-01-01T00:00:00Z'
 DEFAULT_SENDER='TEST SENDER'
-DEFAULT_RECIPIENT='255123456789'
-# If common.sh can't find sms-client, set it here
+DEFAULT_RECIPIENT='+255123456789'
+
+# If sms-client cannot be found, specify full path here
 #SMS_CLIENT=/path/to/sms-client/bin/sms-client
-
-# --- NO EDITING BELOW THIS LINE ---
-
-BROKER="${BROKER:-$DEFAULT_BROKER}"
-TOPIC="${TOPIC:-$DEFAULT_TOPIC}"
-CLIENT="${CLIENT:-$DEFAULT_CLIENT}"
-DEADLINE="${DEADLINE:-$DEFAULT_DEADLINE}"
-SENDER="${SENDER:-$DEFAULT_SENDER}"
-RECIPIENT="${RECIPIENT:-$DEFAULT_RECIPIENT}"
-CORREL="${CORREL:-C${RANDOM}$$}"
-PUBFILE="${PUBFILE:-$(dirname "$(realpath "$0")")/lib/${CLIENT}.pub}"

@@ -1,11 +1,11 @@
 # test-client README
 
 This directory has tools to inject requests on the `send-sms` queue and
-"fake" responses on the `sms-status` queue, and tools to monitor the live
+fake responses on the `sms-status` queue, and tools to monitor the live
 queues.
 
-To make testing convenient, drop the public key files for the test clients
-in the `lib` directory.  These can be obtained from a vault file with the
+To make testing convenient, drop the public key files for each test client
+in the `lib` directory.  These can be obtained from a vault with the
 [sms-client](https://github.com/zwets/sms-client) tool:
 
     SMS_CLIENT=/path/to/sms-client/bin/sms-client
@@ -13,15 +13,16 @@ in the `lib` directory.  These can be obtained from a vault file with the
     KEYPASS=123456  # or what you have set
 
     $SMS_CLIENT aliases $VAULT $KEYPASS | while read ALIAS; do
-        $SMS_CLIENT pubkey $VAULT $KEYPASS $ALIAS >$ALIAS.pub
+        $SMS_CLIENT pubkey $VAULT $KEYPASS $ALIAS >lib/$ALIAS.pub
     done
 
-Then, create the `lib/defaults.sh` file:
+Then, create the `lib/defaults` file:
 
+    cd lib
     cp defaults.sh.example default.sh
     # edit defaults.sh
 
-The tools have usage instructions:
+For using the tools, see their `-h/--help` instructions:
 
 ```
 $ ./send-sms -h

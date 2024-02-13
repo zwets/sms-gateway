@@ -5,8 +5,9 @@
 export LC_ALL="C"
 set -euo pipefail
 
-# Source the defaults, see lib/defaults.sh.example
-. "$(dirname "$(realpath "$0")")/lib/defaults"
+# Source shared functions, default settings, and public keys for encryption
+LIB_DIR="$(dirname "$(realpath "$0")")/lib"
+. "$LIB_DIR/settings.sh"
 
 # The functions in kafka-lib.sh will display this
 USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
@@ -22,17 +23,18 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
    RECIPIENT  Destination number [$RECIPIENT]
    FILE       File to be sent or '-' for stdin"
 
-. "$(dirname "$(realpath "$0")")/lib/kafka-lib.sh"
-. "$(dirname "$(realpath "$0")")/lib/crypto-lib.sh"
+# Source the libraries
+. "$LIB_DIR/kafka-lib.sh"
+. "$LIB_DIR/crypto-lib.sh"
 
 # Parse the optional arguments
-(( $# == 7 )) && PUBKEY="$1" && shift || true
-(( $# == 6 )) && CLIENT="$1" && shift || true
-(( $# == 5 )) && CORREL="$1" && shift || true
-(( $# == 4 )) && DEADLINE="$1" && shift || true
-(( $# == 3 )) && SENDER="$1" && shift || true
+(( $# == 7 )) && PUBKEY="$1"    && shift || true
+(( $# == 6 )) && CLIENT="$1"    && shift || true
+(( $# == 5 )) && CORREL="$1"    && shift || true
+(( $# == 4 )) && DEADLINE="$1"  && shift || true
+(( $# == 3 )) && SENDER="$1"    && shift || true
 (( $# == 2 )) && RECIPIENT="$1" && shift || true
-(( $# == 1 )) && FILE="$1" && shift || FILE='-'
+(( $# == 1 )) && FILE="$1"      && shift || FILE='-'
 
 # Read the PUBKEY from PUBFILE
 PUBKEY="$(cat "$PUBFILE")" || err_exit "failed to read pubkey file: $PUBFILE"
