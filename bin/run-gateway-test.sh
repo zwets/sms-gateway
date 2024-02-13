@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$(realpath "$0")")/.."
 
-RELEASE=1.0.0
+RELEASE=1.0.1
 JAR="target/sms-gateway-${RELEASE}.jar"
 
 exec java -jar "$JAR" --spring.profiles.active='test' "$@"

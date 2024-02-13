@@ -10,7 +10,7 @@
    </parent>
    <groupId>it.zwets</groupId>
    <artifactId>sms-gateway</artifactId>
-   <version>1.0.1-SNAPSHOT</version>
+   <version>1.0.1</version>
    <name>SMS Gateway</name>
    <description>Secure and Reliable SMS Gateway</description>
    <properties>
