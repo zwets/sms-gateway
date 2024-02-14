@@ -20,33 +20,33 @@ import org.springframework.core.io.Resource;
 
 /**
  * Vault that does PKI backed by a keystore file.
- * 
+ *
  * The keystore file and its entries must be created with the Java
  * keytool, as there is no programmatic way to add key pairs to a
  * Java keystore.
- * 
+ *
  * The <code>keytool -genkeypair</code> command generates a key pair
  * and stores it in a keystore.  Entries in a keystore are identified
  * by aliases.  In SMS Gateway, each client has its own entry.
- * 
+ *
  * To create the keystore and add entries, use keytool as follows:
  * <pre>
  * keytool -genkeypair -keyalg RSA -keysize 4096 -validity 36500 \
  *    -storepass PASSWORD -keystore FILENAME -alias ALIAS -dname CN=ALIAS
  * </pre>
- * 
+ *
  * To extract the public key for the generated entry as a DER file, use
  * the {@link #getPublicKey(String)} method, or with keytool and openssl:
- * 
+ *
  * <pre>
  * keytool -exportcert -keystore FILENAME -storepass 123456 -alias ALIAS2 |
  * openssl x509 -pubkey |
  * openssl rsa -RSAPublicKey_in -outform DER -pubout -out ALIAS.pub
  * </pre>
- * 
+ *
  * The resulting public key can be used by {@link PkiUtils#encrypt()} to
  * encrypt messages that can only be decrypted by the Vault.
- * 
+ *
  * @author zwets
  */
 public class Vault {
@@ -58,7 +58,7 @@ public class Vault {
 
 	/**
 	 * Create or open the given keystore with the given password
-	 * 
+	 *
 	 * @param fileName the path of the keystore to open
 	 * @param password the password to use for the keystore
 	 */
@@ -69,7 +69,7 @@ public class Vault {
 
     /**
      * Return the list of aliases.
-     * 
+     *
      * @return the list of aliases in the keystore
      * @throws RuntimeException for any underlying checked exception
      */
@@ -81,10 +81,10 @@ public class Vault {
             throw new RuntimeException(e.getMessage(), e.getCause());
         }
     }
-    
+
 	/**
 	 * Return the public key stored for the alias
-	 * 
+	 *
 	 * @param alias
 	 * @return the public key associated with the key
 	 * @throws RuntimeException for any underlying checked exception
@@ -95,7 +95,7 @@ public class Vault {
 
 	/**
 	 * Decrypt the cyphertext with the private key for alias.
-	 * 
+	 *
 	 * @param alias the ID the key was stored under
 	 * @param ciphertext the text to decode
 	 * @return the plaintext

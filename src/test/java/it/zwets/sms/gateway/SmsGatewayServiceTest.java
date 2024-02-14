@@ -35,17 +35,17 @@ import it.zwets.sms.gateway.routes.TestClientRoute;
 //@ExcludeRoutes(SmsRouter.class)
 //@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
 public class SmsGatewayServiceTest {
-    
+
     private static String CORREL_ID = "my-correl-id";
     private static String CLIENT_ID = "test";
     private String cachedDummyPayload = null;
-    
+
     @Autowired
     CamelContext context;
-    
+
     @Autowired
     private Vault vault;
-    
+
     @Produce("marshallingFrontEndRequestEndpoint") // defined in MockConfiguration
     private ProducerTemplate template;
 
@@ -57,7 +57,7 @@ public class SmsGatewayServiceTest {
         response.reset();
     }
         // Check inner workings
-   
+
     @Test
     public void shouldHaveCamelContext() {
         assertNotNull(context);
@@ -72,58 +72,58 @@ public class SmsGatewayServiceTest {
     public void shouldHaveResponseEndpoint() {
         assertNotNull(response);
     }
-    
+
     @Test
     public void shouldHaveRoutes() {
         assertNotNull(context.getRoute("main"));
     }
-    
+
         // General (non client-dependent) tests
-    
+
     @Test
     public void noResponseOnNonJson() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
-        
+
         template.sendBody("this-is-not-json");
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void noResponseOnEmptyJson() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
-        
+
         template.sendBody(new SendSmsRequest(null, null, null, null));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void noResponseOnMissingClientId() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
-        
+
         template.sendBody(new SendSmsRequest(null, CORREL_ID, makeDeadline(1000), dummyPayload()));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void noResponseOnMissingCorrelId() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
-        
+
         template.sendBody(new SendSmsRequest(CLIENT_ID, null, makeDeadline(1000), dummyPayload()));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void invalidOnMissingDeadline() throws InterruptedException {
 
@@ -132,12 +132,12 @@ public class SmsGatewayServiceTest {
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         response.message(0).jsonpath("$['error-text']").isNotNull();
-        
+
         template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, null, dummyPayload()));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void invalidOnMissingMessage() throws InterruptedException {
 
@@ -146,23 +146,23 @@ public class SmsGatewayServiceTest {
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         response.message(0).jsonpath("$['error-text']").isNotNull();
-        
+
         template.sendBody(new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(1000), null));
-        
+
         response.assertIsSatisfied();
     }
 
     @Test
     public void expiredOnArrival() throws InterruptedException {
-        
+
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
         response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
-        
+
         template.sendBody(makeSmsRequest(Instant.now().minusMillis(100), "no content"));
-        
+
         response.assertIsSatisfied();
     }
 
@@ -170,48 +170,48 @@ public class SmsGatewayServiceTest {
     public void invalidOnDisallowedClient() throws InterruptedException {
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
-        
+
         template.sendBody(new SendSmsRequest("notaclient", CORREL_ID, makeDeadline(1000), dummyPayload()));
-        
-        response.assertIsSatisfied();        
+
+        response.assertIsSatisfied();
     }
 
     @Test
     public void invalidDeadline() throws InterruptedException {
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
-        
+
         template.sendBody(makeSmsRequest("this-is-not-iso-8601", "S1D1"));
-        
-        response.assertIsSatisfied();        
+
+        response.assertIsSatisfied();
     }
 
     @Test
     public void invalidWrongKey() throws InterruptedException {
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
-        
+
         SmsMessage sms = new SmsMessage("I will not be decrypted");
         sms.setHeader("To", "123456789");
         sms.setHeader("Sender", "NO SENDER");
-        
+
         try {
             // This encrypts the payload with that of the 'fail' alias, which is in the built-in
             // keystore in src/test/resources but not in src/main/resources.  When runnint the JUnit
             // test in Eclipse this seems to not always go right so we catch and ignore exceptions.
             SendSmsRequest req = new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(1000), encryptPayload("fail", sms.asBytes()));
             template.sendBody(req);
-            
-            response.assertIsSatisfied();        
+
+            response.assertIsSatisfied();
         }
         catch (RuntimeException e) { /* OK */ }
     }
 
     @Test
     public void happyNormalFlow() throws InterruptedException {
-        
+
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
@@ -222,91 +222,91 @@ public class SmsGatewayServiceTest {
         response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("S1D1"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void noResponseS0D0() throws InterruptedException {
-        
+
         response.setAssertPeriod(100);
         response.expectedMessageCount(0);
 
         template.sendBody(makeSmsRequest("S0D0"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void oneResponseS0D1() throws InterruptedException {
-        
+
         response.setAssertPeriod(100);
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
 
         template.sendBody(makeSmsRequest("S0D1"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void oneResponseS1D0() throws InterruptedException {
-        
+
         response.setAssertPeriod(100);
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
-        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("S1D0"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void twoResponseS1DX() throws InterruptedException {
-        
+
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
-        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
         response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
         response.message(1).jsonpath("$['error-text']").isNotNull();
 
         template.sendBody(makeSmsRequest("S1DX"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void twoResponseS2D0() throws InterruptedException {
-        
+
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
-        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
         response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
-        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("S2D0"));
-        
+
         response.assertIsSatisfied();
     }
 
     @Test
     public void inverseOrderD1S1() throws InterruptedException {
-        
+
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_DELIVERED);
@@ -315,17 +315,17 @@ public class SmsGatewayServiceTest {
         response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
         response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
-    
+
         template.sendBody(makeSmsRequest("D1S1"));
-    
+
         response.assertIsSatisfied();
     }
 
     @Test
     public void failThenSentDXS1() throws InterruptedException {
-        
+
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
@@ -333,25 +333,25 @@ public class SmsGatewayServiceTest {
         response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
-        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);        
+        response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("DXS1"));
-        
+
         response.assertIsSatisfied();
     }
-    
+
     @Test
     public void oneResponseFAIL() throws InterruptedException {
-        
+
         response.setAssertPeriod(100);
         response.expectedMessageCount(1);
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
-        response.message(0).jsonpath("$['error-text']").isNotNull();        
+        response.message(0).jsonpath("$['error-text']").isNotNull();
 
         template.sendBody(makeSmsRequest("FAIL"));
-        
+
         response.assertIsSatisfied();
     }
 
@@ -360,7 +360,7 @@ public class SmsGatewayServiceTest {
 
 
         response.expectedMessageCount(2);
-        
+
         response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
         response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
@@ -371,12 +371,12 @@ public class SmsGatewayServiceTest {
         response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
         template.sendBody(makeSmsRequest("Nothing special in the message"));
-        
+
         response.assertIsSatisfied();
     }
 
     // -- Helpers
-    
+
     private String encryptPayload(String clientId, byte[] bytes) {
         byte[] encrypted = PkiUtils.encrypt(vault.getPublicKey(clientId), bytes);
         byte[] base64 = Base64.getEncoder().encode(encrypted);
@@ -387,7 +387,7 @@ public class SmsGatewayServiceTest {
         SmsMessage sms = new SmsMessage(message);
         sms.setHeader("To", "+123456789");
         sms.setHeader("Sender", "NO SENDER");
-        
+
         return new SendSmsRequest(CLIENT_ID, CORREL_ID, deadline, encryptPayload(CLIENT_ID, sms.asBytes()));
     }
 
@@ -398,7 +398,7 @@ public class SmsGatewayServiceTest {
     private SendSmsRequest makeSmsRequest(String message) {
         return makeSmsRequest(makeDeadline(1000), message);
     }
-    
+
     private String dummyPayload() {
         if (cachedDummyPayload == null) {
             SmsMessage sms = new SmsMessage("Dummy Message");
@@ -408,7 +408,7 @@ public class SmsGatewayServiceTest {
         }
         return cachedDummyPayload;
     }
-    
+
     private String makeDeadline(int millis) {
         return Instant.now().plusMillis(millis).toString();
     }
