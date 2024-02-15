@@ -229,8 +229,9 @@ Add a key pair for each of your clients
 (Optional but very convenient) extract the public keys for later use
 
     SMS_CLIENT=/opt/sms-client/bin/sms-client
-    sudo $SMS_CLIENT aliases $TGT_DIR/config/prod.vault | while read ALIAS; do
-        sudo $SMS_CLIENT pubkey $TGT_DIR/config/prod.vault $ALIAS | sudo tee $TGT_DIR/config/$ALIAS.pub
+    sudo $SMS_CLIENT aliases $TGT_DIR/config/prod.vault "$NEW_PASS" | while read ALIAS; do
+        sudo $SMS_CLIENT pubkey $TGT_DIR/config/prod.vault "$NEW_PASS" $ALIAS |
+        sudo tee $TGT_DIR/config/$ALIAS.pub
     done
 
 Set vault location and password in application properties
