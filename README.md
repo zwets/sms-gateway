@@ -169,58 +169,75 @@ See [test-client/README.md](test-client/README.md) for details.
 
 ## Deployment
 
+Settings for the steps below
+
+    SRC_DIR=$PWD               # path to the unpacked repository
+    TGT_DIR=/opt/sms-gateway   # installation directory
+
 Deployment requires the [sms-client](https://github.com/zwets/sms-client)
 tools for creating the vault (see that repo for details):
 
-    cd /opt &&
-    tar xzf sms-client.tar.gz
+    sudo tar --no-same-owner --no-same-perm -C /opt -xzf sms-client.tar.gz
 
-Create the installation directory `/opt/sms-gateway`
+    # Convenenient to add it to your PATH (in ~/.profile)
+    PATH="$PATH:/opt/sms-client/bin"
 
-    mkdir /opt/sms-gateway && cd /opt/sms-gateway
-    cp sms-gateway-${VERSION}.jar .
-    ln -sf sms-gateway-${VERSION}.jar sms-gateway.jar
+Create the installation directory
+
+    sudo mkdir $TGT_DIR &&
+    sudo cp /path/to/downloaded/sms-gateway-${VERSION}.jar $TGT_DIR &&
+    sudo ln -sf sms-gateway-${VERSION}.jar $TGT_DIR/sms-gateway.jar
 
 Create the `smeg` user and group it will run as
 
-    adduser --system --gecos 'SMS Gateway' --group --no-create-home --home /opt/sms-gateway smeg
+    sudo adduser --system --gecos 'SMS Gateway' --group --no-create-home --home $TGT_DIR smeg
 
 Create config dir
 
-    mkdir config &&
-    chown root:smeg config &&
-    chmod 0750 config
+    sudo mkdir $TGT_DIR/config &&
+    sudo chown root:smeg $TGT_DIR/config &&
+    sudo chmod 0750 $TGT_DIR/config
 
 Create directory for per-client logs
 
-    mkdir /var/log/sms-gateway
-    chown smeg:adm /var/log/sms-gateway
+    sudo mkdir /var/log/sms-gateway &&
+    sudo chown smeg:adm /var/log/sms-gateway
 
-Add the application properties to config
+Add application properties to config (from the one in the repo)
 
-    vi config/application-prod.properties &&
-    chmod 0640 config/application-prod.properties
+    sudo install -m 0640 -o root -g smeg -t /opt/sms-gateway/config \
+        $SRC_DIR/src/main/resources/application-prod.properties &&
+    sudo edit /opt/sms-gateway/config/application-prod.properties
+        # set the appropriate parameters to override defaults
 
-Create the vault
+Create the prod vault (from the builtin.vault in the repo)
 
-    # Still in the config directory
-    ../../sms-client/bin/new-keypair prod.vault ${KEYPASS} test    
-    ... do the same for the other clients ...
+    sudo install -m 0640 -o root -g smeg -T \
+         $SRC_DIR/src/main/resources/builtin.vault $TGT_DIR/config/prod.vault
 
-    # Restrict access
-    chown root:smeg prod.vault
-    chmod 0640 prod.vault
+    # Change the store password from 123456 to something of your own
+    NEW_PASS='...'
+    keytool -storepasswd -keystore $TGT_DIR/config/prod.vault -storepass 123456 -new "$NEW_PASS"
 
-    # (Optional) extract the public keys for later use
-    ../../sms-client/bin/sms-client aliases prod.vault ${YOURKEYPASS} | while read ALIAS; do
-        ../../sms-client/bin/get-pubkey prod.vault ${YOURKEYPASS} $ALIAS >$ALIAS.pub
+Add a key pair for each of your clients
+
+    GEN_PAIR=/opt/sms-client/bin/new-keypair
+    for CLIENT in client1 client2 ...; do
+        sudo $GEN_PAIR $TGT_DIR/config/prod.vault "$NEW_PASS" "$CLIENT"
     done
 
-Set vault location in properties
+(Optional but very convenient) extract the public keys for later use
 
-    # In: config/application-prod.properties
+    SMS_CLIENT=/opt/sms-client/bin/sms-client
+    sudo $SMS_CLIENT aliases $TGT_DIR/config/prod.vault | while read ALIAS; do
+        sudo $SMS_CLIENT pubkey $TGT_DIR/config/prod.vault $ALIAS | sudo tee $TGT_DIR/config/$ALIAS.pub
+    done
+
+Set vault location and password in application properties
+
+    sudo vi $TGT_DIR/config/application-prod.properties
     sms.gateway.crypto.keystore=config/prod.vault
-    sms.gateway.crypto.keypass=${KEYPASS}
+    sms.gateway.crypto.storepass=${NEW_PASS}
 
 Create the Kafka topics
 

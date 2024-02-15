@@ -21,18 +21,18 @@ public class MockConfiguration {
     private final String[] allowedClients;
     private final String clientLogDir;
     private final String vaultKeystore;
-    private final String vaultKeypass;
+    private final String vaultPassword;
 
     public MockConfiguration(
             @Value("${sms.gateway.allowed-clients}") String allowClients,
             @Value("${sms.gateway.client-log.dir}") String clientLog,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
-            @Value("${sms.gateway.crypto.keypass}") String keyPass) 
+            @Value("${sms.gateway.crypto.storepass}") String storePass) 
     {
         allowedClients = allowClients.split(" *, *");
         clientLogDir = clientLog;
         vaultKeystore = keyStore;
-        vaultKeypass = keyPass;
+        vaultPassword = storePass;
     }
     
     /**
@@ -125,7 +125,7 @@ public class MockConfiguration {
      */
     @Bean
     public Vault getVault() {
-        return new Vault(vaultKeystore, vaultKeypass);
+        return new Vault(vaultKeystore, vaultPassword);
     }
     
     /**

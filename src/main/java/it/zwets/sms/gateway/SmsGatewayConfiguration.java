@@ -36,7 +36,7 @@ public class SmsGatewayConfiguration {
     private final String[] allowedClients;
     private final String clientLogDir;
     private final String vaultKeystore;
-    private final String vaultKeypass;
+    private final String vaultPassword;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
     private final KafkaEndpointProducerBuilder kafkaOutBuilder;
     private final String vodacomWaspUsername;
@@ -54,7 +54,7 @@ public class SmsGatewayConfiguration {
             @Value("${sms.gateway.allowed-clients}") String allowClients,
             @Value("${sms.gateway.client-log.dir}") String clientLog,
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
-            @Value("${sms.gateway.crypto.keypass}") String keyPass,
+            @Value("${sms.gateway.crypto.storepass}") String storePass,
             @Value("${sms.gateway.kafka.brokers}") String kafkaBrokers,
             @Value("${sms.gateway.kafka.inbound-topic}") String kafkaInboundTopic,
             @Value("${sms.gateway.kafka.outbound-topic}") String kafkaOutboundTopic,
@@ -71,7 +71,7 @@ public class SmsGatewayConfiguration {
         clientLogDir = clientLog;
         
         vaultKeystore = keyStore;
-        vaultKeypass = keyPass;
+        vaultPassword = storePass;
         
         kafkaInBuilder = StaticEndpointBuilders
                 .kafka(kafkaInboundTopic)
@@ -128,7 +128,7 @@ public class SmsGatewayConfiguration {
     
     @Bean
     public Vault getVault() {
-        return new Vault(vaultKeystore, vaultKeypass);
+        return new Vault(vaultKeystore, vaultPassword);
     }
     
     @Bean
