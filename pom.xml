@@ -5,12 +5,12 @@
    <parent>
       <groupId>org.apache.camel.springboot</groupId>
       <artifactId>spring-boot</artifactId>
-      <version>4.3.0</version>
+      <version>4.4.0</version>
       <relativePath/> <!-- lookup parent from repository -->
    </parent>
    <groupId>it.zwets</groupId>
    <artifactId>sms-gateway</artifactId>
-   <version>1.0.4-SNAPSHOT</version>
+   <version>1.0.4</version>
    <name>SMS Gateway</name>
    <description>Secure and Reliable SMS Gateway</description>
    <properties>
