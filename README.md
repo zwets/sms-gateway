@@ -250,7 +250,7 @@ Create the Kafka topics
 Add the systemd service by editing `etc/sms-gateway.service` and copying or
 symlinking into `/etc/systemd/system`
 
-    systemctl enable etc/sms-gateway.service
+    systemctl enable $PWD/etc/sms-gateway.service
     systemctl start sms-gateway
 
 To see and follow the logging output
