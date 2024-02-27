@@ -15,7 +15,7 @@ USAGE="[[[[[[[PUBFILE] CLIENT] CORREL] DEADLINE] SENDER] RECIPIENT] FILE]
   Send an SMS over Kafka to the SMS Gateway
 
   POSITIONAL PARAMS
-   PUBFILE    Public key file to encrypt with [lib/\${CLIENT}.pub]
+   PUBFILE    Public key file to encrypt with [lib/keys/\${CLIENT}.pub]
    CLIENT     Client on whose behalf you are sending [$CLIENT]
    CORREL     Unique correlation ID within the CLIENT [C\${RANDOM}]
    DEADLINE   Expiry of the SMS in ISO UTC [$DEADLINE]
