@@ -5,7 +5,7 @@ fake responses on the `sms-status` queue, and tools to monitor the live
 queues.
 
 To make testing convenient, drop the public key files for each test client
-in the `lib` directory.  These can be obtained from a vault with the
+in the `lib/keys` directory.  These can be obtained from a vault with the
 [sms-client](https://github.com/zwets/sms-client) tool:
 
     SMS_CLIENT=/path/to/sms-client/bin/sms-client
@@ -13,7 +13,7 @@ in the `lib` directory.  These can be obtained from a vault with the
     KEYPASS=123456  # or what you have set
 
     $SMS_CLIENT aliases $VAULT $KEYPASS | while read ALIAS; do
-        $SMS_CLIENT pubkey $VAULT $KEYPASS $ALIAS >lib/$ALIAS.pub
+        $SMS_CLIENT pubkey $VAULT $KEYPASS $ALIAS >lib/keys/$ALIAS.pub
     done
 
 Then, create the `lib/defaults` file:
