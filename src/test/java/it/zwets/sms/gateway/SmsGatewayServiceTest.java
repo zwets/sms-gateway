@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import it.zwets.sms.crypto.PkiUtils;
+import it.zwets.sms.crypto.PkiCrypto;
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.ResponseProducer;
@@ -378,7 +378,7 @@ public class SmsGatewayServiceTest {
     // -- Helpers
 
     private String encryptPayload(String clientId, byte[] bytes) {
-        byte[] encrypted = PkiUtils.encrypt(vault.getPublicKey(clientId), bytes);
+        byte[] encrypted = PkiCrypto.encrypt(vault.getPublicKey(clientId), bytes);
         byte[] base64 = Base64.getEncoder().encode(encrypted);
         return new String(base64, StandardCharsets.UTF_8);
     }
