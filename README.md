@@ -25,7 +25,7 @@ The idea of this setup is that the Scheduler (which is highly stateful
 as it holds the scheduled messages and handles failures and retries) has
 no access whatsoever to the message content or recipient.
 
-The SMS Gateway, or the other hand, holds no state: it consumes encrypted
+The SMS Gateway, on the other hand, holds no state: it consumes encrypted
 blobs from the scheduler (that were encrypted for it by the _client_ of
 the scheduler), temporarily decrypts these and forwards them to the SMSC.
 It asynchronously reports back status changes to the scheduler.
@@ -47,12 +47,12 @@ top of [Apache Camel](https://camel.apache.org).
 
 Request messages on topic `send-sms` must have this JSON structure:
 
-```json
+```
 {
     "client-id": the ID of the client (tenant), e.g. "test",
     "correl-id": unique ID assigned by the client, to correlate response
-    "deadline": timestamp before which the message must be sent
-    "payload": the encrypted message
+    "deadline":  timestamp before which the message must be sent
+    "payload":   the encrypted message
 }
 ```
 
@@ -92,13 +92,13 @@ Encryption and decryption work as follows:
 
 Response messages on topic `sms-status` have this JSON structure:
 
-```json
+```
 {
-    "client-id": client ID from request
-    "correl-id": correlation ID from request
-    "timestamp": ISO-8601 instant the messge was processed
+    "client-id":  client ID from request
+    "correl-id":  correlation ID from request
+    "timestamp":  ISO-8601 instant the message was processed
     "sms-status": SENT, DELIVERED, EXPIRED, INVALID, FAILED
-    "recall-id": optional field with backend correlation
+    "recall-id":  optional field with backend correlation
     "error-text": optional field with error description
 }
 ```
@@ -146,7 +146,8 @@ Drop a file `application.properties` (or separate files
 `application-{prod,test}.properties`) in your PWD or PWD/config, and these
 will be picked up.
 
-The Spring Boot docs for [Externalised Configuration](https://docs.spring.io/spring-boot/docs/3.0.4/reference/html/features.html#features.external-config)
+The Spring Boot docs for
+[Externalised Configuration](https://docs.spring.io/spring-boot/docs/3.0.4/reference/html/features.html#features.external-config)
 have all the details.
 
 
@@ -179,7 +180,7 @@ tools for creating the vault (see that repo for details):
 
     sudo tar --no-same-owner --no-same-perm -C /opt -xzf sms-client.tar.gz
 
-    # Convenenient to add it to your PATH (in ~/.profile)
+    # Convenient to add it to your PATH (in ~/.profile)
     PATH="$PATH:/opt/sms-client/bin"
 
 Create the installation directory
@@ -276,6 +277,8 @@ facilities for dealing with backend failures, including scheduling retries.
 For this reason, the SMS Gateway is configured for "fail-fast" operation: when
 a backend connection is unavailable, it will attempt fail-over after a short
 timeout, and without retries.
+
+Related Camel docs:
 
  * [On Exception](https://camel.apache.org/manual/exception-clause.html)
  * [Error Handler](https://camel.apache.org/manual/error-handler.html)
