@@ -5,7 +5,6 @@ set -euo pipefail
 
 cd "$(dirname "$(realpath "$0")")/.."
 
-VERSION=1.1.1-SNAPSHOT
-JAR="target/sms-gateway-${VERSION}.jar"
-
+# This asseumes a symlink in our base directory pointing at the versioned jar
+JAR="sms-gateway.jar"
 exec java -jar "$JAR" --spring.profiles.active='test' "$@"
