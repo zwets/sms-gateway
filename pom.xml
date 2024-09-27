@@ -5,12 +5,12 @@
    <parent>
       <groupId>org.apache.camel.springboot</groupId>
       <artifactId>spring-boot</artifactId>
-      <version>4.4.0</version>
+      <version>4.8.0</version>
       <relativePath/> <!-- lookup parent from repository -->
    </parent>
    <groupId>it.zwets</groupId>
    <artifactId>sms-gateway</artifactId>
-   <version>1.1.1-SNAPSHOT</version>
+   <version>1.1.1</version>
    <name>SMS Gateway</name>
    <description>Secure and Reliable SMS Gateway</description>
    <properties>
@@ -19,16 +19,16 @@
    <dependencyManagement>
       <dependencies>
          <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-dependencies</artifactId>
-            <version>${spring-boot-version}</version>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-spring-boot-bom</artifactId>
+            <version>${camel-version}</version>
             <type>pom</type>
             <scope>import</scope>
          </dependency>
          <dependency>
-            <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-spring-boot-bom</artifactId>
-            <version>${camel-version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-dependencies</artifactId>
+            <version>${spring-boot-version}</version>
             <type>pom</type>
             <scope>import</scope>
          </dependency>

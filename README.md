@@ -288,7 +288,13 @@ Related Camel docs:
 
 ### SMPP
 
- * <https://camel.apache.org/components/next/smpp-component.html>
+ * [Camel SMPP](https://camel.apache.org/components/next/smpp-component.html), wraps
+ * [JSMPP](https://jsmpp.org) ([GitHub](https://github.com/opentelecoms-org/jsmpp))
+ * JSMPP documentation on [their Wiki](https://github.com/opentelecoms-org/jsmpp/wiki/),
+   and they have examples, including
+   * [SMSC Simulator](https://github.com/opentelecoms-org/jsmpp/wiki/GettingStarted#running-smpp-server)
+   * [SMS Router](http://smsrouter.org/) ([GitHub](https://github.com/opentelecoms-org/smsrouter))
+     made by JSMPP developers; very simple Camel route, but apparently does the job.
 
 
 #### Licence
