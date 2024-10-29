@@ -5,7 +5,7 @@ Requires=network.target kafka.service
 After=kafka.service
 
 [Service]
-Type=simple
+Type=exec
 User=smeg
 Group=smeg
 WorkingDirectory=/opt/sms-gateway
