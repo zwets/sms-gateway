@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import it.zwets.sms.gateway.comp.VodaRequestProducer;
-import it.zwets.sms.gateway.comp.VodaResponseProcessor;
-import it.zwets.sms.gateway.dto.VodaResponse;
+import it.zwets.sms.gateway.comp.VodaWaspRequestProducer;
+import it.zwets.sms.gateway.comp.VodaWaspResponseProcessor;
+import it.zwets.sms.gateway.dto.VodaWaspResponse;
 
 /**
  * Camel route to the Vodacom Wasp REST API.
@@ -41,10 +41,10 @@ public class VodaWaspRoute extends RouteBuilder {
     public static String VODA_WASP_ROUTE = "direct:voda-wasp";
 
     @Autowired
-    private VodaRequestProducer vodaRequestProducer;
+    private VodaWaspRequestProducer vodaRequestProducer;
 
     @Autowired
-    private VodaResponseProcessor vodaResponseProcessor;
+    private VodaWaspResponseProcessor vodaResponseProcessor;
 
     @Override
     public void configure() throws Exception {
@@ -128,7 +128,7 @@ public class VodaWaspRoute extends RouteBuilder {
         // so it uses the global exception handling again
 
         from("direct:wasp-response")
-            .unmarshal().jacksonXml(VodaResponse.class)
+            .unmarshal().jacksonXml(VodaWaspResponse.class)
             .process(vodaResponseProcessor)
             .to(SmsRouter.RESPOND);
 

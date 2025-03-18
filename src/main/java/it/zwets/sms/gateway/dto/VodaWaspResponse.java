@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 
 
 @JsonRootName("SMSSubmitRsp")
-public class VodaResponse {
+public class VodaWaspResponse {
 
     public record Status(
             @JsonProperty Integer StatusCode,

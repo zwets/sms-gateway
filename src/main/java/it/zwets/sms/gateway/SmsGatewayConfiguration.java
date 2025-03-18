@@ -17,8 +17,8 @@ import org.springframework.context.annotation.Configuration;
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
-import it.zwets.sms.gateway.comp.VodaRequestProducer;
-import it.zwets.sms.gateway.comp.VodaResponseProcessor;
+import it.zwets.sms.gateway.comp.VodaWaspRequestProducer;
+import it.zwets.sms.gateway.comp.VodaWaspResponseProcessor;
 import it.zwets.sms.gateway.routes.VodaWaspRoute;
 
 /**
@@ -39,8 +39,8 @@ public class SmsGatewayConfiguration {
     private final String vaultPassword;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
     private final KafkaEndpointProducerBuilder kafkaOutBuilder;
-    private final String vodacomWaspUsername;
-    private final String vodacomWaspPassword;
+    private final String waspUsername;
+    private final String waspPassword;
     
     /**
      * Constructor with constructor injection of the Camel context and
@@ -60,8 +60,8 @@ public class SmsGatewayConfiguration {
             @Value("${sms.gateway.kafka.outbound-topic}") String kafkaOutboundTopic,
             @Value("${sms.gateway.kafka.client-id}") String kafkaClientId,
             @Value("${sms.gateway.kafka.group-id}") String kafkaGroupId,
-            @Value("${sms.gateway.vodacom.wasp.username}") String vodaRequestUsername, 
-            @Value("${sms.gateway.vodacom.wasp.password}") String vodaRequestPassword
+            @Value("${sms.gateway.vodacom.wasp.username}") String vodaWaspUsername, 
+            @Value("${sms.gateway.vodacom.wasp.password}") String vodaWaspPassword
             ) {
         LOG.debug("Constructing SmsGatewayConfiguration with CamelContext '{}'", camelContext.getName());
         this.camelContext = camelContext;
@@ -83,8 +83,8 @@ public class SmsGatewayConfiguration {
                 .brokers(kafkaBrokers)
                 .clientId(kafkaClientId);
         
-        vodacomWaspUsername = vodaRequestUsername;
-        vodacomWaspPassword = vodaRequestPassword;
+        waspUsername = vodaWaspUsername;
+        waspPassword = vodaWaspPassword;
     }
     
     @Bean(Constants.ENDPOINT_FRONTEND_REQUEST)
@@ -117,13 +117,13 @@ public class SmsGatewayConfiguration {
     }
 
     @Bean
-    public VodaRequestProducer getVodaRequestProducer() {
-        return new VodaRequestProducer(vodacomWaspUsername, vodacomWaspPassword);
+    public VodaWaspRequestProducer getVodaWaspRequestProducer() {
+        return new VodaWaspRequestProducer(waspUsername, waspPassword);
     }
     
     @Bean
-    public VodaResponseProcessor getVodaResponseProcessor() {
-        return new VodaResponseProcessor();
+    public VodaWaspResponseProcessor getVodaWaspResponseProcessor() {
+        return new VodaWaspResponseProcessor();
     }
     
     @Bean

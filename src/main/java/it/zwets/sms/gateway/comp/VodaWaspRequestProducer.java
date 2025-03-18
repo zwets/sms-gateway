@@ -15,29 +15,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.zwets.sms.gateway.dto.SmsMessage;
-import it.zwets.sms.gateway.dto.VodaRequest;
+import it.zwets.sms.gateway.dto.VodaWaspRequest;
 
 /**
  * Produces backend request for the Vodacom Wasp REST.
  * 
- * Transforms the in body from {@link SmsMessage} to {@link VodaRequest}
+ * Transforms the in body from {@link SmsMessage} to {@link VodaWaspRequest}
  * 
  * When the <code>process</code> method has completed, the message header
  * sms-status will be either unset and the message body has been replaced by
- * a {@link VodaRequest}, or INVALID and error will be set.
+ * a {@link VodaWaspRequest}, or INVALID and error will be set.
  *
  * Does nothing if sms-status is already set on entry.
  */
-public class VodaRequestProducer implements Processor {
+public class VodaWaspRequestProducer implements Processor {
     
-    private static final Logger LOG = LoggerFactory.getLogger(VodaRequestProducer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VodaWaspRequestProducer.class);
     private static final Pattern RECIPIENT_REGEX = Pattern.compile("^\\+255\\d{9}$");
     private static final Pattern SENDER_REGEX = Pattern.compile("^.{1,11}$");
 
     private final String username;
     private final String password;
     
-    public VodaRequestProducer(String username, String password) {
+    public VodaWaspRequestProducer(String username, String password) {
         LOG.debug("Constructing with {}:{}", username, password);
 
         this.username = username;
@@ -54,7 +54,7 @@ public class VodaRequestProducer implements Processor {
         }
         else {
             SmsMessage sms = exchange.getIn().getBody(SmsMessage.class);
-            LOG.debug("transform SMS to VodaRequest: %s".formatted(sms));
+            LOG.debug("transform SMS to VodaWaspRequest: %s".formatted(sms));
             
             String recipient = sms.getHeader(SMS_HEADER_TO);
             String sender = sms.getHeader(SMS_HEADER_SENDER);
@@ -79,13 +79,13 @@ public class VodaRequestProducer implements Processor {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS message is empty");
             }
             else {
-                VodaRequest vodaReq = new VodaRequest(username, password, sender, recipient.substring(1), message);
-                LOG.debug("Setting body to VodaRequest: %s".formatted(vodaReq));
+                VodaWaspRequest vodaReq = new VodaWaspRequest(username, password, sender, recipient.substring(1), message);
+                LOG.debug("Setting body to VodaWaspRequest: %s".formatted(vodaReq));
                 msg.setBody(vodaReq);
             }
             
             if (msg.getHeader(HEADER_ERROR_TEXT) != null) {
-                LOG.error("Failed to produce VodaRequest: {}", msg.getHeader(HEADER_ERROR_TEXT));
+                LOG.error("Failed to produce VodaWaspRequest: {}", msg.getHeader(HEADER_ERROR_TEXT));
                 msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
             }
         }

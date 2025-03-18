@@ -12,21 +12,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
-import it.zwets.sms.gateway.dto.VodaResponse;
+import it.zwets.sms.gateway.dto.VodaWaspResponse;
 
 /**
  * Processes response from Voda Wasp REST API backend.
  * 
- * Transforms the in body from a {@link VodaResponse} to message headers.
+ * Transforms the in body from a {@link VodaWaspResponse} to message headers.
  * 
  * When the <code>process</code> method has completed, the message header
  * sms-status is guaranteed to be set.
  *
  * Does nothing if sms-status is already set on entry.
  */
-public class VodaResponseProcessor implements Processor {
+public class VodaWaspResponseProcessor implements Processor {
     
-    private static final Logger LOG = LoggerFactory.getLogger(VodaResponseProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VodaWaspResponseProcessor.class);
 
     @Override
     public void process(Exchange exchange) throws Exception {
@@ -40,7 +40,7 @@ public class VodaResponseProcessor implements Processor {
 
             try {
                 LOG.debug("processing Vodacom response: {}", msg.getBody());
-                VodaResponse vodaRsp = msg.getBody(VodaResponse.class);
+                VodaWaspResponse vodaRsp = msg.getBody(VodaWaspResponse.class);
                 
                 if (vodaRsp.Status.StatusCode() == 0) {
                     msg.setHeader(HEADER_SMS_STATUS, Constants.SMS_STATUS_SENT);
@@ -54,7 +54,7 @@ public class VodaResponseProcessor implements Processor {
                 }
             }
             catch (Exception e) {
-                LOG.error("Exception while processing VodaRequest: {}", e.getMessage());
+                LOG.error("Exception while processing VodaWaspRequest: {}", e.getMessage());
                 msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
                 msg.setHeader(HEADER_ERROR_TEXT, e.getMessage());
             }

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 @JsonRootName("SMSSubmitReq")
-public class VodaRequest {
+public class VodaWaspRequest {
 
     public record Sender(
             @JsonProperty String Username,
@@ -34,7 +34,7 @@ public class VodaRequest {
     @JsonProperty Tariff Tariff;
     @JsonProperty DeliveryReport DeliveryReport;
     
-    public VodaRequest(String userName, String password, String sender, String recipient, String message)
+    public VodaWaspRequest(String userName, String password, String sender, String recipient, String message)
     {
         InterfaceID = "JX";
         Sender = new Sender(userName, password, 1, sender);
