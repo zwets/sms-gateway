@@ -12,8 +12,6 @@ import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
-import it.zwets.sms.gateway.comp.VodaWaspRequestProducer;
-import it.zwets.sms.gateway.comp.VodaWaspResponseProcessor;
 
 @Configuration
 public class MockConfiguration {
@@ -99,24 +97,6 @@ public class MockConfiguration {
     @Bean 
     RequestProcessor getRequestProcessor() {
         return new RequestProcessor(allowedClients);
-    }
-
-    /**
-     * Returns the actual producer but with dummy username and password
-     * @return the processor
-     */
-    @Bean
-    public VodaWaspRequestProducer getVodaRequestProducer() {
-        return new VodaWaspRequestProducer("MOCK", "MOCK");
-    }
-
-    /**
-     * Returns the voda reponse processor bean
-     * @return the processor
-     */
-    @Bean
-    public VodaWaspResponseProcessor getVodaResponseProcessor() {
-        return new VodaWaspResponseProcessor();
     }
 
     /**

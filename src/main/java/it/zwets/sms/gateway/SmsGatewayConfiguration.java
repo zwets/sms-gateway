@@ -17,8 +17,11 @@ import org.springframework.context.annotation.Configuration;
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
+import it.zwets.sms.gateway.comp.SmppRequestProducer;
+import it.zwets.sms.gateway.comp.SmppResponseProcessor;
 import it.zwets.sms.gateway.comp.VodaWaspRequestProducer;
 import it.zwets.sms.gateway.comp.VodaWaspResponseProcessor;
+import it.zwets.sms.gateway.routes.SmppRoute;
 import it.zwets.sms.gateway.routes.VodaWaspRoute;
 
 /**
@@ -29,8 +32,11 @@ import it.zwets.sms.gateway.routes.VodaWaspRoute;
 @Configuration(proxyBeanMethods = false)
 public class SmsGatewayConfiguration {
     
-    private static final Logger LOG = LoggerFactory.getLogger(SmsGatewayConfiguration.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(SmsGatewayConfiguration.class);
 
+    public static final String BACKEND_SMPP = "SMPP";
+    public static final String BACKEND_WASP = "WASP";
+    
     private final CamelContext camelContext;
 
     private final String[] allowedClients;
@@ -39,6 +45,7 @@ public class SmsGatewayConfiguration {
     private final String vaultPassword;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
     private final KafkaEndpointProducerBuilder kafkaOutBuilder;
+    private final String backend;
     private final String waspUsername;
     private final String waspPassword;
     
@@ -60,10 +67,11 @@ public class SmsGatewayConfiguration {
             @Value("${sms.gateway.kafka.outbound-topic}") String kafkaOutboundTopic,
             @Value("${sms.gateway.kafka.client-id}") String kafkaClientId,
             @Value("${sms.gateway.kafka.group-id}") String kafkaGroupId,
+            @Value("${sms.gateway.backend:SMPP}") String backend, // BACKEND_SMPP or BACKEND_WASP
             @Value("${sms.gateway.vodacom.wasp.username}") String vodaWaspUsername, 
             @Value("${sms.gateway.vodacom.wasp.password}") String vodaWaspPassword
             ) {
-        LOG.debug("Constructing SmsGatewayConfiguration with CamelContext '{}'", camelContext.getName());
+        LOG.debug("Constructing SmsGatewayConfiguration to {} backend  with CamelContext '{}'", backend, camelContext.getName());
         this.camelContext = camelContext;
 
         allowedClients = allowClients.split(" *, *");
@@ -83,6 +91,8 @@ public class SmsGatewayConfiguration {
                 .brokers(kafkaBrokers)
                 .clientId(kafkaClientId);
         
+        this.backend = backend == null ? SmsGatewayConfiguration.BACKEND_SMPP : backend;
+        
         waspUsername = vodaWaspUsername;
         waspPassword = vodaWaspPassword;
     }
@@ -99,7 +109,14 @@ public class SmsGatewayConfiguration {
     
     @Bean(Constants.ENDPOINT_BACKEND_REQUEST)
     public Endpoint backendRequestEndpoint() {
-        return camelContext.getEndpoint(VodaWaspRoute.VODA_WASP_ROUTE);
+        switch (backend.toUpperCase()) {
+        case SmsGatewayConfiguration.BACKEND_SMPP:
+            return camelContext.getEndpoint(SmppRoute.SMPP_ROUTE);
+        case SmsGatewayConfiguration.BACKEND_WASP:
+            return camelContext.getEndpoint(VodaWaspRoute.VODA_WASP_ROUTE);
+        default:
+            throw new IllegalArgumentException("Not a valid backend: %s".formatted(backend));
+        }
     }
 
     @Bean(Constants.ENDPOINT_CLIENT_LOG)
@@ -114,6 +131,16 @@ public class SmsGatewayConfiguration {
    
     @Bean RequestProcessor getRequestProcessor() {
         return new RequestProcessor(allowedClients);
+    }
+
+    @Bean
+    public SmppRequestProducer getSmppRequestProducer() {
+        return new SmppRequestProducer();
+    }
+    
+    @Bean
+    public SmppResponseProcessor getSmppResponseProcessor() {
+        return new SmppResponseProcessor();
     }
 
     @Bean

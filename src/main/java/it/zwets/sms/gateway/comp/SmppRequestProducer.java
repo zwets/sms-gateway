@@ -11,37 +11,33 @@ import java.util.regex.Pattern;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
+import org.apache.camel.component.smpp.SmppConstants;
+import org.apache.camel.component.smpp.SmppSubmitSmCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.zwets.sms.gateway.dto.SmsMessage;
-import it.zwets.sms.gateway.dto.VodaWaspRequest;
 
 /**
- * Produces backend request for the Vodacom Wasp REST.
+ * Produces backend request for the SMPP gateway.
  * 
- * Transforms the in body from {@link SmsMessage} to {@link VodaWaspRequest}
+ * Transforms the in body from {@link SmsMessage} to a text body, and
+ * sets the exchange headers needed for SMPP (see {@link SmppSubmitSmCommand}).
  * 
  * When the <code>process</code> method has completed, the message header
- * sms-status will be either unset and the message body has been replaced by
- * a {@link VodaWaspRequest}, or INVALID and error will be set.
+ * sms-status will be either unset the message can be processed, or INVALID
+ * and error will be set.
  *
  * Does nothing if sms-status is already set on entry.
  */
-public class VodaWaspRequestProducer implements Processor {
+public class SmppRequestProducer implements Processor {
     
-    private static final Logger LOG = LoggerFactory.getLogger(VodaWaspRequestProducer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SmppRequestProducer.class);
     private static final Pattern RECIPIENT_REGEX = Pattern.compile("^\\+255\\d{9}$");
     private static final Pattern SENDER_REGEX = Pattern.compile("^.{1,11}$");
 
-    private final String username;
-    private final String password;
-    
-    public VodaWaspRequestProducer(String username, String password) {
-        LOG.debug("Constructing with {}:{}", username, password);
-
-        this.username = username;
-        this.password = password;
+    public SmppRequestProducer() {
+        LOG.debug("Constructing SmppRequestProducer");
     }
 
     @Override
@@ -54,7 +50,7 @@ public class VodaWaspRequestProducer implements Processor {
         }
         else {
             SmsMessage sms = exchange.getIn().getBody(SmsMessage.class);
-            LOG.debug("transform SMS to VodaWaspRequest: %s".formatted(sms));
+            LOG.debug("transform SMS to SMPP request: %s".formatted(sms));
             
             String recipient = sms.getHeader(SMS_HEADER_TO);
             String sender = sms.getHeader(SMS_HEADER_SENDER);
@@ -64,13 +60,13 @@ public class VodaWaspRequestProducer implements Processor {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS lacks recipient");
             }
             else if (!recipient.startsWith("+255")) {
-                msg.setHeader(HEADER_ERROR_TEXT, "Vodacom WASP backend disallows foreign SMS recipient: %s".formatted(recipient));
+                msg.setHeader(HEADER_ERROR_TEXT, "Gateway disallows foreign SMS recipient: %s".formatted(recipient));
             }
             else if (!RECIPIENT_REGEX.matcher(recipient).matches()) {
-                msg.setHeader(HEADER_ERROR_TEXT, "SMS recipient number invalid for Vodacom WASP backend: %s".formatted(recipient));
+                msg.setHeader(HEADER_ERROR_TEXT, "Recipient number invalid for SMPP backend: %s".formatted(recipient));
             }
-            else if (sender == null) { 
-                msg.setHeader(HEADER_ERROR_TEXT, "Vodacom WASP backend requires a message sender");
+            else if (sender == null) {
+                msg.setHeader(HEADER_ERROR_TEXT, "SMPP backend requires a message sender");
             }
             else if (!SENDER_REGEX.matcher(sender).matches()) {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS sender does not have a 1-11 character length: %s".formatted(sender));
@@ -79,13 +75,18 @@ public class VodaWaspRequestProducer implements Processor {
                 msg.setHeader(HEADER_ERROR_TEXT, "SMS message is empty");
             }
             else {
-                VodaWaspRequest vodaReq = new VodaWaspRequest(username, password, sender, recipient.substring(1), message);
-                LOG.debug("Setting body to VodaWaspRequest: %s".formatted(vodaReq));
-                msg.setBody(vodaReq);
+                // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
+                msg.setHeader(SmppConstants.SOURCE_ADDR_TON, 5);
+                msg.setHeader(SmppConstants.SOURCE_ADDR, sender.substring(1));
+                // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
+                msg.setHeader(SmppConstants.DEST_ADDR_TON, 1);
+                msg.setHeader(SmppConstants.DEST_ADDR, recipient);
+                // msg.setHeader(SmppConstants.VALIDITY_PERIOD, ???);
+                msg.setBody(message);
             }
             
             if (msg.getHeader(HEADER_ERROR_TEXT) != null) {
-                LOG.error("Failed to produce VodaWaspRequest: {}", msg.getHeader(HEADER_ERROR_TEXT));
+                LOG.error("Failed to produce SMPP request: {}", msg.getHeader(HEADER_ERROR_TEXT));
                 msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
             }
         }

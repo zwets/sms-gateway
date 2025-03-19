@@ -53,6 +53,10 @@
    </dependency>
    <dependency>
       <groupId>org.apache.camel.springboot</groupId>
+      <artifactId>camel-smpp-starter</artifactId>
+   </dependency>
+   <dependency>
+      <groupId>org.apache.camel.springboot</groupId>
       <artifactId>camel-jackson-starter</artifactId>
    </dependency>
    <dependency>
