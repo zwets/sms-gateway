@@ -1,14 +1,15 @@
 package it.zwets.sms.gateway.routes;
 
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_RECALL_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 import static org.apache.camel.LoggingLevel.DEBUG;
 import static org.apache.camel.LoggingLevel.ERROR;
 import static org.apache.camel.LoggingLevel.INFO;
 import static org.apache.camel.LoggingLevel.TRACE;
 
-import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.smpp.SmppConstants;
 import org.apache.camel.component.smpp.SmppException;
@@ -19,7 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import it.zwets.sms.gateway.comp.SmppRequestProducer;
-import it.zwets.sms.gateway.comp.SmppResponseProcessor;
+import it.zwets.sms.gateway.comp.SmppInboundProcessor;
 
 /**
  * Camel route to the SMPP backend (SMSC). * 
@@ -31,13 +32,13 @@ public class SmppRoute extends RouteBuilder {
 
     public static String SMPP_ROUTE = "direct:smpp-route";
 
-    private static final String RESPOND = "direct:smpp-respond";
+    private static final String SMPP_INBOUND = "direct:smpp-inbound";
     
     @Autowired
     private SmppRequestProducer smppRequestProducer;
 
     @Autowired
-    private SmppResponseProcessor smppResponseProcessor;
+    private SmppInboundProcessor smppInboundProcessor;
     
     private final String smppUri;
     private final String username;
@@ -50,7 +51,7 @@ public class SmppRoute extends RouteBuilder {
             @Value("${sms.gateway.smpp.password}") String password)
     {
         LOG.info("SmppRoute created to {}:{}", host, port);
-        smppUri = "smpp://%s:%s?messageReceiverRouteId=%s".formatted(host, port, RESPOND);
+        smppUri = "smpp://%s:%s?messageReceiverRouteId=%s".formatted(host, port, SMPP_INBOUND);
         this.username = username;
         this.password = password;
     }
@@ -91,17 +92,20 @@ public class SmppRoute extends RouteBuilder {
                 .when(header(HEADER_SMS_STATUS).isNotNull())
                     .to(SmsRouter.RESPOND)
                 .otherwise()
-                    .log(TRACE, LOG, "SMPP outbound: ${body}")
                     .setHeader(SmppConstants.SYSTEM_ID, constant(username))
                     .setHeader(SmppConstants.PASSWORD, constant(password))
-                    .to(smppUri)
-                    .to(RESPOND);
+                    .log(DEBUG, LOG, "Submitting SMS to SMSC")
+                    .to(smppUri) // throws unless successful
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
+                    .setHeader(HEADER_RECALL_ID, regexReplaceAll(header(SmppConstants.ID), "^.*,", "")) // only last of list
+                    .log(INFO, LOG, "SMS was submitted, recall ID ${header.%s}".formatted(HEADER_RECALL_ID))
+                    .to(SmsRouter.RESPOND);
             
-        // We have a TRX message centre, so this response route is bound by the messageReceiverRouteId
+        // We have a TRX message centre and bind this route is by the messageReceiverRouteId
 
-        from(RESPOND).routeId(RESPOND)
-            .log(DEBUG, LOG, "SMPP respond: ${body}")
-            .process(smppResponseProcessor)
+        from(SMPP_INBOUND).routeId(SMPP_INBOUND)
+            .log(TRACE, LOG, "SMPP inbound message: ${body}")
+            .process(smppInboundProcessor)
             .to(SmsRouter.RESPOND);
 
     }

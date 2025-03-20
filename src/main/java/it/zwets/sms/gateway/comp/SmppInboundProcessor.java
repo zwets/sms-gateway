@@ -3,15 +3,11 @@ package it.zwets.sms.gateway.comp;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_RECALL_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
-
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_DELIVERED;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_EXPIRED;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
-
-import java.util.Date;
-import java.util.Map;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -37,9 +33,9 @@ import org.slf4j.LoggerFactory;
  * enriched with a message ID (list), or an asynchronous SmppMessage from the
  * SMSC, which hopefully is a delivery report.
  */
-public class SmppResponseProcessor implements Processor {
+public class SmppInboundProcessor implements Processor {
     
-    private static final Logger LOG = LoggerFactory.getLogger(SmppResponseProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SmppInboundProcessor.class);
 
     @Override
     public void process(Exchange exchange) throws Exception {
@@ -47,83 +43,71 @@ public class SmppResponseProcessor implements Processor {
         Message msg = exchange.getIn();
 
         if (msg.getHeader(HEADER_SMS_STATUS) != null) {
-            LOG.debug("skipping, status already {}", msg.getHeader(HEADER_SMS_STATUS));
+            LOG.debug("Skipping, status already {}", msg.getHeader(HEADER_SMS_STATUS));
         }
         else {
 
             try {
-                LOG.debug("processing SMPP response: {}", msg.getBody());
+                LOG.debug("Processing SMPP response: {}", msg.getBody());
 
                 SmppMessage smppMsg = exchange.getIn(SmppMessage.class);
                     
-                if (smppMsg != null) {
+                if (smppMsg == null) {
+                    throw new Exception("Inbound SMPP message is not an SmppMessage");
+                }
                     
-                    if (smppMsg.isDeliveryReceipt() ) {
-
-                        String recallId = smppMsg.getHeader(SmppConstants.ID, String.class); // string (on send is a list)
-                        msg.setHeader(HEADER_RECALL_ID, recallId);
-                        
-                        String error = smppMsg.getHeader(SmppConstants.ERROR, String.class); // null or smsc specific
-                        Date doneDate = smppMsg.getHeader(SmppConstants.DONE_DATE, Date.class); // YYMMDDhhmm when attained final state
-                        Date submitDate = smppMsg.getHeader(SmppConstants.SUBMIT_DATE, Date.class); // YYMMDDhhmm when message was submitted / replaced
-                        Integer submitted = smppMsg.getHeader(SmppConstants.SUBMITTED, Integer.class); // the number submitted when distribution list
-                        Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
-                        
-                        DeliveryReceiptState state = smppMsg.getHeader(SmppConstants.FINAL_STATUS, DeliveryReceiptState.class);
-                        
-                        switch (state) {
-                        case DeliveryReceiptState.ACCEPTD:
-                        case DeliveryReceiptState.ENROUTE:
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_SENT);
-                            break;
-                        case DeliveryReceiptState.DELIVRD:
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_DELIVERED);
-                            break;
-                        case DeliveryReceiptState.EXPIRED:
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_EXPIRED);
-                            break;
-                        case DeliveryReceiptState.DELETED:
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
-                            msg.setHeader(HEADER_ERROR_TEXT, "Message was deleted");
-                            break;
-                        case DeliveryReceiptState.UNKNOWN: // not sure, maybe send no response @TODO@
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
-                            msg.setHeader(HEADER_ERROR_TEXT, "SMSC delivery state UNKNOWN: %s".formatted(error != null ? error : "(no error message)"));
-                            break;
-                        case DeliveryReceiptState.UNDELIV:
-                            msg.setHeader(HEADER_ERROR_TEXT, "Message is undeliverable: %s".formatted(error != null ? error : "(no error message)"));
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
-                        case DeliveryReceiptState.REJECTD:
-                            msg.setHeader(HEADER_ERROR_TEXT, "SMSC rejects message: %s".formatted(error != null ? error : "(no error message)"));
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
-                            break;
-                        default:
-                            LOG.error("Unknown DeliveryReceiptState: ", state);
-                            msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
-                            msg.setHeader(HEADER_ERROR_TEXT, "Unknown delivery state: %s: %s".formatted(state, error != null ? error : "(no error message)"));
-                        }
-                      
-                        LOG.debug("Delivery receipt for recall-id {} error {} doneDate {} submitDate {} submitted {} delivered {}",
-                                recallId, error, doneDate, submitDate, submitted, delivered);
-                        
-                        @SuppressWarnings("unchecked")
-                        Map<Short,Object> optParms = (Map<Short, Object>) smppMsg.getHeader(SmppConstants.OPTIONAL_PARAMETER);
-                        if (optParms != null) {
-                            for (Map.Entry<Short, Object> entry : optParms.entrySet()) {
-                                LOG.debug("- optional param {} = {}", entry.getKey(), entry.getValue());
-                            }
-                        }
-                    }
-                    else {
-                        LOG.warn("SMSC sent us a {} message, ignoring", smppMsg.getHeader(SmppConstants.MESSAGE_TYPE));
-                    }
+                if (!smppMsg.isDeliveryReceipt() ) {
+                    LOG.warn("Ignoring a {} message from the SMSC: {}", 
+                            smppMsg.getHeader(SmppConstants.MESSAGE_TYPE), smppMsg.getBody());
+                    exchange.setRouteStop(true);
                 }
                 else {
-                    String recallId = msg.getHeader(SmppConstants.ID, String.class); // string (on send is a list)
-                    LOG.info("SMPP outbound processed, recall ID {}", recallId);
-                    
+
+                    String recallId = smppMsg.getHeader(SmppConstants.ID, String.class); // string (on send is a list)
                     msg.setHeader(HEADER_RECALL_ID, recallId);
-                    msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_SENT);                    
+                    
+                    String error = smppMsg.getHeader(SmppConstants.ERROR, String.class); // null or smsc specific
+                    
+//                    Date doneDate = smppMsg.getHeader(SmppConstants.DONE_DATE, Date.class); // when attained final state
+//                    Date submitDate = smppMsg.getHeader(SmppConstants.SUBMIT_DATE, Date.class); // when message was submitted / replaced
+//                    Integer submitted = smppMsg.getHeader(SmppConstants.SUBMITTED, Integer.class); // the number submitted when distribution list
+//                    Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
+                    
+                    DeliveryReceiptState state = smppMsg.getHeader(SmppConstants.FINAL_STATUS, DeliveryReceiptState.class);
+                    
+                    LOG.info("Delivery receipt for recall-id {}: {} (error {})", recallId, state, error);
+                    
+                    switch (state) {
+                    case DeliveryReceiptState.ACCEPTD:
+                    case DeliveryReceiptState.ENROUTE:
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_SENT);
+                        break;
+                    case DeliveryReceiptState.DELIVRD:
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_DELIVERED);
+                        break;
+                    case DeliveryReceiptState.EXPIRED:
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_EXPIRED);
+                        break;
+                    case DeliveryReceiptState.DELETED:
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
+                        msg.setHeader(HEADER_ERROR_TEXT, "Message was deleted");
+                        break;
+                    case DeliveryReceiptState.UNKNOWN: // not sure, maybe send no response @TODO@
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
+                        msg.setHeader(HEADER_ERROR_TEXT, "SMSC delivery state UNKNOWN: %s".formatted(error != null ? error : "(no error message)"));
+                        break;
+                    case DeliveryReceiptState.UNDELIV:
+                        msg.setHeader(HEADER_ERROR_TEXT, "Message is undeliverable: %s".formatted(error != null ? error : "(no error message)"));
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
+                    case DeliveryReceiptState.REJECTD:
+                        msg.setHeader(HEADER_ERROR_TEXT, "SMSC rejects message: %s".formatted(error != null ? error : "(no error message)"));
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
+                        break;
+                    default:
+                        LOG.error("Unknown DeliveryReceiptState: ", state);
+                        msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
+                        msg.setHeader(HEADER_ERROR_TEXT, "Unknown delivery state: %s: %s".formatted(state, error != null ? error : "(no error message)"));
+                    }                  
                 }
             }
             catch (Exception e) {

@@ -18,7 +18,7 @@ import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.SmppRequestProducer;
-import it.zwets.sms.gateway.comp.SmppResponseProcessor;
+import it.zwets.sms.gateway.comp.SmppInboundProcessor;
 import it.zwets.sms.gateway.comp.VodaWaspRequestProducer;
 import it.zwets.sms.gateway.comp.VodaWaspResponseProcessor;
 import it.zwets.sms.gateway.routes.SmppRoute;
@@ -139,8 +139,8 @@ public class SmsGatewayConfiguration {
     }
     
     @Bean
-    public SmppResponseProcessor getSmppResponseProcessor() {
-        return new SmppResponseProcessor();
+    public SmppInboundProcessor getSmppResponseProcessor() {
+        return new SmppInboundProcessor();
     }
 
     @Bean
