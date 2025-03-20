@@ -112,7 +112,7 @@ public class PkiCrypto {
          * @throws RuntimeException for any underlying exception
          */
         public void encrypt(InputStream is, OutputStream os) {
-            LOG.debug("encrypting input stream");
+            LOG.debug("Encrypting input stream");
 
             // Generate a new random key of KEY_SIZE
             byte[] key = new byte[KEY_SIZE];
@@ -126,7 +126,7 @@ public class PkiCrypto {
 
             // Encrypt the payload onto the output stream
             try (CipherOutputStream cos = new CipherOutputStream(os, getSymmetricCipher(Cipher.ENCRYPT_MODE, key))) {
-                LOG.debug("write the ciphertext to the output stream");
+                LOG.debug("Write the ciphertext to the output stream");
                 is.transferTo(cos);
                 is.close();
             }
@@ -143,7 +143,7 @@ public class PkiCrypto {
          * @return the pk-encrypted key followed by the actual ciphertext
          */
         public byte[] encrypt(final byte[] plaintext) {
-            LOG.debug("encrypting plaintext byte array");
+            LOG.debug("Encrypting plaintext byte array");
             ByteArrayInputStream bis = new ByteArrayInputStream(plaintext);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             encrypt(bis, bos);
@@ -173,14 +173,14 @@ public class PkiCrypto {
          * @param os an open {@link OutputStream}
          */
         public void decrypt(InputStream is, OutputStream os) {
-            LOG.debug("decrypting input stream");
+            LOG.debug("Decrypting input stream");
             
             // Read the MAGIC header and decrypt the symmetric key
             byte[] encKey = parseHeader(is);
             byte[] key = pkiDecrypt(privateKey, encKey);
 
             try (CipherInputStream cis = new CipherInputStream(is, getSymmetricCipher(Cipher.DECRYPT_MODE, key))) {
-                LOG.debug("decrypting the payload");
+                LOG.debug("Decrypting the payload");
                 cis.transferTo(os);
                 cis.close();
             }
@@ -196,7 +196,7 @@ public class PkiCrypto {
          * @return plaintext
          */
         public byte[] decrypt(final byte[] ciphertext) {
-            LOG.debug("decrypting ciphertext from byte array");
+            LOG.debug("Decrypting ciphertext from byte array");
             ByteArrayInputStream bis = new ByteArrayInputStream(ciphertext);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             decrypt(bis, bos);
@@ -245,7 +245,7 @@ public class PkiCrypto {
      * @return the initialised symmetic cipher
      */
     private static Cipher getSymmetricCipher(int mode, final byte[] key) {
-        LOG.debug("producing new symmetric encryption cipher");
+        LOG.debug("Producing new symmetric encryption cipher");
         try {
             Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM);
             cipher.init(mode,
@@ -294,10 +294,10 @@ public class PkiCrypto {
      * @throws RuntimeException for any underlying exception
      */
     private static void writeHeader(OutputStream os, byte[] enckey) {
-        LOG.debug("writing ciphertext header");
+        LOG.debug("Writing ciphertext header");
         
         if (enckey.length <= LOMASK) { // can encode up to 16 bits
-            LOG.debug("write the 4-byte header");
+            LOG.debug("Write the 4-byte header");
 
             try {
                 int header = (MAGIC << LOBITS) | (enckey.length & LOMASK);
@@ -306,7 +306,7 @@ public class PkiCrypto {
                 os.write(header >> 8);
                 os.write(header);
                 
-                LOG.debug("write the {}-byte encrypted symmetric key", enckey.length);
+                LOG.debug("Write the {}-byte encrypted symmetric key", enckey.length);
                 os.write(enckey);
             }
             catch (IOException e) {
@@ -329,7 +329,7 @@ public class PkiCrypto {
      * @throws RuntimeException if MAGIC not found or the encrypted key could not be read
      */
     private static byte[] parseHeader(InputStream is) {
-        LOG.debug("parsing ciphertext header");
+        LOG.debug("Parsing ciphertext header");
         
         try {
             byte[] b = is.readNBytes(4);                // 32 bit header
@@ -342,7 +342,7 @@ public class PkiCrypto {
                 throw new RuntimeException("Invalid ciphertext: MAGIC not found");
             }
             
-            LOG.debug("reading the {}-byte encrypted symmetric key", encsz);
+            LOG.debug("Reading the {}-byte encrypted symmetric key", encsz);
             byte[] enckey = is.readNBytes(encsz);
             if (enckey.length != encsz) {
                 throw new RuntimeException("Failed to read the %d-byte encrypted symmetric key".formatted(encsz));

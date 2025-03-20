@@ -117,10 +117,10 @@ public class TestClientRoute extends RouteBuilder {
                     .setHeader(HEADER_ERROR_TEXT, constant("You requested this to FAIL"))
                     .to(DELAY_RESPOND)
                 .otherwise()
-                    .log(INFO, LOG, "test route: no marker: respond SENT first")
+                    .log(INFO, LOG, "Test route: no marker: respond SENT first")
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
                     .to(NORMAL_RESPOND)
-                    .log(INFO, LOG, "test route: no marker: responding DELIVERED second")
+                    .log(INFO, LOG, "Test route: no marker: responding DELIVERED second")
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_DELIVERED))
                     .to(DELAY_RESPOND);
     }

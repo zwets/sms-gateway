@@ -89,7 +89,7 @@ public class RequestProcessor implements Processor {
                                 msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_EXPIRED);
                             }
                             else {
-                                LOG.debug("Request has passed validation, replacing body");
+                                LOG.debug("Request has passed validation");
                                 msg.setBody(req);
                             }
                         }

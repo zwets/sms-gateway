@@ -46,11 +46,11 @@ public class SmppRequestProducer implements Processor {
         Message msg = exchange.getIn();
 
         if (msg.getHeader(HEADER_SMS_STATUS) != null) {
-            LOG.debug("skipping, status already {}", msg.getHeader(HEADER_SMS_STATUS));
+            LOG.debug("Skipping, status already {}", msg.getHeader(HEADER_SMS_STATUS));
         }
         else {
             SmsMessage sms = exchange.getIn().getBody(SmsMessage.class);
-            LOG.debug("transform SMS to SMPP request: %s".formatted(sms));
+            LOG.debug("Transforming SMS to SMPP request");
             
             String recipient = sms.getHeader(SMS_HEADER_TO);
             String sender = sms.getHeader(SMS_HEADER_SENDER);
