@@ -13,6 +13,7 @@ import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.component.smpp.SmppConstants;
 import org.apache.camel.component.smpp.SmppSubmitSmCommand;
+import org.jsmpp.bean.TypeOfNumber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,11 +77,11 @@ public class SmppRequestProducer implements Processor {
             }
             else {
                 // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
-                msg.setHeader(SmppConstants.SOURCE_ADDR_TON, 5);
+                msg.setHeader(SmppConstants.SOURCE_ADDR_TON, TypeOfNumber.ALPHANUMERIC.value());
                 msg.setHeader(SmppConstants.SOURCE_ADDR, sender);
                 // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
-                msg.setHeader(SmppConstants.DEST_ADDR_TON, 1);
-                msg.setHeader(SmppConstants.DEST_ADDR, recipient.substring(1));
+                msg.setHeader(SmppConstants.DEST_ADDR_TON, TypeOfNumber.INTERNATIONAL.value());
+                msg.setHeader(SmppConstants.DEST_ADDR, recipient.substring(1)); // trim the '+' prefix off the number 
                 // msg.setHeader(SmppConstants.VALIDITY_PERIOD, ???);
                 msg.setBody(message);
             }
