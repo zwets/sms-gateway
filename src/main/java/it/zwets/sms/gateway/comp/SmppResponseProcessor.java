@@ -64,32 +64,16 @@ public class SmppResponseProcessor implements Processor {
                 String[] recallIds = msg.getHeader(SmppConstants.ID, String[].class);
                 
                 if (recallIds != null && recallIds.length > 0) {
-                    String recallId = recallIds[recallIds.length - 1];
-                    
-                    LOG.debug("SMS was SENT with recall-id {}", recallId);
-                    
-                    // HACK: it seems Camel SMPP or JSMPP or the JSMPP SMSC simulator (and perhaps
-                    // not the Voda SMSC) returns the message IDs as stringified HEX integers, whereas
-                    // the delivery confirmations come with their DECIMAL equivalent.
-                    //
-                    // So what we do is try to parse them as hex integer, then store the real integer.
-                    // When this goes wrong is if they are actually DECIMAL integers (which parse as
-                    // hexadecimal too, of course, but then give a different number ...).
-                    //
-                    // For now let's try this.
-                    
-                    try {
-                        Integer parsedRecallId = Integer.valueOf(recallId, 16);
-                        LOG.debug("Hack applied: recallId {} will be interpreted as {}", recallId, parsedRecallId);
-                        recallId = String.valueOf(parsedRecallId);
-                    }
-                    catch (NumberFormatException nfe) {
-                        LOG.warn("Failed to parse recall ID as a hex number; hack needs fixing");
-                    }
 
+                    String recallId = recallIds[recallIds.length - 1];
+                    LOG.debug("SMS was SENT with recall-id {}", recallId);
+
+                    // The correlation record we set here will be persistend to Kafka downstream
                     msg.setHeader(HEADER_RECALL_ID, recallId);
                     msg.setHeader(HEADER_CORREL_REC, new CorrelationRecord(
-                        recallId, msg.getHeader(HEADER_CLIENT_ID, String.class), msg.getHeader(HEADER_CORREL_ID, String.class)
+                        recallId,
+                        msg.getHeader(HEADER_CLIENT_ID, String.class),
+                        msg.getHeader(HEADER_CORREL_ID, String.class)
                     ));
                 }
                 else {

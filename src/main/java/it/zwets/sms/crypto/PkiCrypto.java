@@ -126,7 +126,7 @@ public class PkiCrypto {
 
             // Encrypt the payload onto the output stream
             try (CipherOutputStream cos = new CipherOutputStream(os, getSymmetricCipher(Cipher.ENCRYPT_MODE, key))) {
-                LOG.debug("Write the ciphertext to the output stream");
+                LOG.trace("Write the ciphertext to the output stream");
                 is.transferTo(cos);
                 is.close();
             }
@@ -245,7 +245,7 @@ public class PkiCrypto {
      * @return the initialised symmetic cipher
      */
     private static Cipher getSymmetricCipher(int mode, final byte[] key) {
-        LOG.debug("Producing new symmetric encryption cipher");
+        LOG.trace("Producing new symmetric encryption cipher");
         try {
             Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM);
             cipher.init(mode,
@@ -297,7 +297,6 @@ public class PkiCrypto {
         LOG.debug("Writing ciphertext header");
         
         if (enckey.length <= LOMASK) { // can encode up to 16 bits
-            LOG.debug("Write the 4-byte header");
 
             try {
                 int header = (MAGIC << LOBITS) | (enckey.length & LOMASK);
@@ -306,7 +305,6 @@ public class PkiCrypto {
                 os.write(header >> 8);
                 os.write(header);
                 
-                LOG.debug("Write the {}-byte encrypted symmetric key", enckey.length);
                 os.write(enckey);
             }
             catch (IOException e) {
@@ -329,7 +327,7 @@ public class PkiCrypto {
      * @throws RuntimeException if MAGIC not found or the encrypted key could not be read
      */
     private static byte[] parseHeader(InputStream is) {
-        LOG.debug("Parsing ciphertext header");
+        LOG.trace("Parsing ciphertext header");
         
         try {
             byte[] b = is.readNBytes(4);                // 32 bit header
@@ -342,7 +340,6 @@ public class PkiCrypto {
                 throw new RuntimeException("Invalid ciphertext: MAGIC not found");
             }
             
-            LOG.debug("Reading the {}-byte encrypted symmetric key", encsz);
             byte[] enckey = is.readNBytes(encsz);
             if (enckey.length != encsz) {
                 throw new RuntimeException("Failed to read the %d-byte encrypted symmetric key".formatted(encsz));
