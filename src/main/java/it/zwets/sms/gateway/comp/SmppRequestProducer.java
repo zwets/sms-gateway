@@ -77,10 +77,10 @@ public class SmppRequestProducer implements Processor {
             else {
                 // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
                 msg.setHeader(SmppConstants.SOURCE_ADDR_TON, 5);
-                msg.setHeader(SmppConstants.SOURCE_ADDR, sender.substring(1));
+                msg.setHeader(SmppConstants.SOURCE_ADDR, sender);
                 // 0: Unknown 1: International 2: National 3: Network Specific 4: Subscriber Number 5: Alphanumeric 6: Abbreviated.
                 msg.setHeader(SmppConstants.DEST_ADDR_TON, 1);
-                msg.setHeader(SmppConstants.DEST_ADDR, recipient);
+                msg.setHeader(SmppConstants.DEST_ADDR, recipient.substring(1));
                 // msg.setHeader(SmppConstants.VALIDITY_PERIOD, ???);
                 msg.setBody(message);
             }
