@@ -143,7 +143,7 @@ public class PkiCrypto {
          * @return the pk-encrypted key followed by the actual ciphertext
          */
         public byte[] encrypt(final byte[] plaintext) {
-            LOG.debug("Encrypting plaintext byte array");
+            LOG.trace("Encrypting plaintext byte array");
             ByteArrayInputStream bis = new ByteArrayInputStream(plaintext);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             encrypt(bis, bos);
@@ -196,7 +196,7 @@ public class PkiCrypto {
          * @return plaintext
          */
         public byte[] decrypt(final byte[] ciphertext) {
-            LOG.debug("Decrypting ciphertext from byte array");
+            LOG.trace("Decrypting ciphertext from byte array");
             ByteArrayInputStream bis = new ByteArrayInputStream(ciphertext);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             decrypt(bis, bos);
@@ -294,7 +294,7 @@ public class PkiCrypto {
      * @throws RuntimeException for any underlying exception
      */
     private static void writeHeader(OutputStream os, byte[] enckey) {
-        LOG.debug("Writing ciphertext header");
+        LOG.trace("Writing ciphertext header");
         
         if (enckey.length <= LOMASK) { // can encode up to 16 bits
 

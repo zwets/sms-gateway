@@ -23,7 +23,7 @@ public class CorrelationTable {
             LOG.error("Refusing to store correlation record for recall-id null");
         }
         else {
-            LOG.debug("Storing correlation record {} -> {}:{}", rec.recallId(), rec.clientId(), rec.correlId());
+            LOG.debug("Add/replace correlation record {} -> {}:{}", rec.recallId(), rec.clientId(), rec.correlId());
             map.put(rec.recallId(), rec);
         }
     }
