@@ -7,6 +7,7 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.builder.endpoint.StaticEndpointBuilders;
 import org.apache.camel.builder.endpoint.dsl.KafkaEndpointBuilderFactory.KafkaEndpointConsumerBuilder;
 import org.apache.camel.builder.endpoint.dsl.KafkaEndpointBuilderFactory.KafkaEndpointProducerBuilder;
+import org.apache.camel.component.kafka.SeekPolicy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import it.zwets.sms.crypto.Vault;
+import it.zwets.sms.gateway.comp.CorrelationTable;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 import it.zwets.sms.gateway.comp.SmppRequestProducer;
@@ -45,6 +47,8 @@ public class SmsGatewayConfiguration {
     private final String vaultPassword;
     private final KafkaEndpointConsumerBuilder kafkaInBuilder;
     private final KafkaEndpointProducerBuilder kafkaOutBuilder;
+    private final KafkaEndpointConsumerBuilder kafkaCorrelReadBuilder;
+    private final KafkaEndpointProducerBuilder kafkaCorrelWriteBuilder;
     private final String backend;
     private final String waspUsername;
     private final String waspPassword;
@@ -63,10 +67,11 @@ public class SmsGatewayConfiguration {
             @Value("${sms.gateway.crypto.keystore}") String keyStore,
             @Value("${sms.gateway.crypto.storepass}") String storePass,
             @Value("${sms.gateway.kafka.brokers}") String kafkaBrokers,
-            @Value("${sms.gateway.kafka.inbound-topic}") String kafkaInboundTopic,
-            @Value("${sms.gateway.kafka.outbound-topic}") String kafkaOutboundTopic,
-            @Value("${sms.gateway.kafka.client-id}") String kafkaClientId,
-            @Value("${sms.gateway.kafka.group-id}") String kafkaGroupId,
+            @Value("${sms.gateway.kafka.inbound-topic:send-sms}") String kafkaInboundTopic,
+            @Value("${sms.gateway.kafka.outbound-topic:sms-status}") String kafkaOutboundTopic,
+            @Value("${sms.gateway.kafka.correl-topic:correl-id}") String kafkaCorrelTopic,
+            @Value("${sms.gateway.kafka.client-id:${spring.application.name}}") String kafkaClientId,
+            @Value("${sms.gateway.kafka.group-id:${spring.application.name}}") String kafkaGroupId,
             @Value("${sms.gateway.backend:SMPP}") String backend, // BACKEND_SMPP or BACKEND_WASP
             @Value("${sms.gateway.vodacom.wasp.username}") String vodaWaspUsername, 
             @Value("${sms.gateway.vodacom.wasp.password}") String vodaWaspPassword
@@ -80,7 +85,7 @@ public class SmsGatewayConfiguration {
         
         vaultKeystore = keyStore;
         vaultPassword = storePass;
-        
+
         kafkaInBuilder = StaticEndpointBuilders
                 .kafka(kafkaInboundTopic)
                 .brokers(kafkaBrokers)
@@ -88,6 +93,17 @@ public class SmsGatewayConfiguration {
  
         kafkaOutBuilder = StaticEndpointBuilders
                 .kafka(kafkaOutboundTopic)
+                .brokers(kafkaBrokers)
+                .clientId(kafkaClientId);
+        
+        kafkaCorrelReadBuilder = StaticEndpointBuilders
+                .kafka(kafkaCorrelTopic)
+                .brokers(kafkaBrokers)
+                .groupId(kafkaGroupId)
+                .seekTo(SeekPolicy.BEGINNING);
+        
+        kafkaCorrelWriteBuilder = StaticEndpointBuilders
+                .kafka(kafkaCorrelTopic)
                 .brokers(kafkaBrokers)
                 .clientId(kafkaClientId);
         
@@ -111,7 +127,7 @@ public class SmsGatewayConfiguration {
     public Endpoint backendRequestEndpoint() {
         switch (backend.toUpperCase()) {
         case SmsGatewayConfiguration.BACKEND_SMPP:
-            return camelContext.getEndpoint(SmppRoute.SMPP_ROUTE);
+            return camelContext.getEndpoint(SmppRoute.SMPP_SUBMIT);
         case SmsGatewayConfiguration.BACKEND_WASP:
             return camelContext.getEndpoint(VodaWaspRoute.VODA_WASP_ROUTE);
         default:
@@ -119,9 +135,24 @@ public class SmsGatewayConfiguration {
         }
     }
 
+    @Bean(Constants.ENDPOINT_CORREL_READ)
+    public Endpoint correlReadTopic() {
+        return kafkaCorrelReadBuilder.resolve(camelContext);
+    }
+
+    @Bean(Constants.ENDPOINT_CORREL_WRITE)
+    public Endpoint correlWriteTopic() {
+        return kafkaCorrelWriteBuilder.resolve(camelContext);
+    }
+
     @Bean(Constants.ENDPOINT_CLIENT_LOG)
     public Endpoint clientLogEndpoint() {
         return camelContext.getEndpoint("file://%s?fileExist=append".formatted(clientLogDir));
+    }
+
+    @Bean(Constants.BEAN_CORRELATION_TABLE)
+    public CorrelationTable getCorrelationTable() {
+        return new CorrelationTable();
     }
 
     @Bean("NoopHostnameVerifier")
@@ -173,7 +204,10 @@ public class SmsGatewayConfiguration {
         public static final String ENDPOINT_FRONTEND_REQUEST = "frontEndRequest";
         public static final String ENDPOINT_FRONTEND_RESPONSE = "frontEndResponse";
         public static final String ENDPOINT_BACKEND_REQUEST = "backEndRequest";
+        public static final String ENDPOINT_CORREL_READ = "correlRead";
+        public static final String ENDPOINT_CORREL_WRITE = "correlWrite";
         public static final String ENDPOINT_CLIENT_LOG = "clientLog";
+        public static final String BEAN_CORRELATION_TABLE = "correlationTable";
         
         // Incoming message fields
         
@@ -186,9 +220,10 @@ public class SmsGatewayConfiguration {
 
         public static final String HEADER_CLIENT_ID = "clientId";
         public static final String HEADER_CORREL_ID = "correlId";
+        public static final String HEADER_CORREL_REC = "correlRec";
         public static final String HEADER_TIMESTAMP = "timeStamp";
-        public static final String HEADER_SMS_STATUS = "smsStatus";
         public static final String HEADER_RECALL_ID = "recallId";
+        public static final String HEADER_SMS_STATUS = "smsStatus";
         public static final String HEADER_ERROR_TEXT = "errorText";
 
         // Outgoing message fields
@@ -196,8 +231,8 @@ public class SmsGatewayConfiguration {
         public static final String OUT_FIELD_CLIENT_ID = "client-id";
         public static final String OUT_FIELD_CORREL_ID = "correl-id";
         public static final String OUT_FIELD_TIMESTAMP = "timestamp";
-        public static final String OUT_FIELD_SMS_STATUS = "sms-status";
         public static final String OUT_FIELD_RECALL_ID = "recall-id";
+        public static final String OUT_FIELD_SMS_STATUS = "sms-status";
         public static final String OUT_FIELD_ERROR_TEXT = "error-text";
         
         // Values for OUT_FIELD_SMS_STATUS

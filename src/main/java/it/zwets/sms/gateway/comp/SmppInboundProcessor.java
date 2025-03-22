@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Processes response from SMPP gateway.
+ * Processes asynchronous delivery reports from the SMPP gateway.
  * 
  * Transforms the headers on the response coming from Camel SMPP to exchange 
  * headers that the SMS route will translate to a response to the client.
@@ -28,15 +28,11 @@ import org.slf4j.LoggerFactory;
  * When the <code>process</code> method has completed, the message header
  * sms-status is guaranteed to be set.  Does nothing if sms-status is already
  * set on entry.
- * 
- * The message we process is either the exchange that just went through a send,
- * enriched with a message ID (list), or an asynchronous SmppMessage from the
- * SMSC, which hopefully is a delivery report.
  */
 public class SmppInboundProcessor implements Processor {
     
     private static final Logger LOG = LoggerFactory.getLogger(SmppInboundProcessor.class);
-
+    
     @Override
     public void process(Exchange exchange) throws Exception {
         
@@ -48,10 +44,10 @@ public class SmppInboundProcessor implements Processor {
         else {
 
             try {
-                LOG.debug("Processing SMPP response: {}", msg.getBody());
+                LOG.debug("Processing Inbound SMPP message");
 
                 SmppMessage smppMsg = exchange.getIn(SmppMessage.class);
-                    
+
                 if (smppMsg == null) {
                     throw new Exception("Inbound SMPP message is not an SmppMessage");
                 }
@@ -63,19 +59,21 @@ public class SmppInboundProcessor implements Processor {
                 }
                 else {
 
-                    String recallId = smppMsg.getHeader(SmppConstants.ID, String.class); // string (on send is a list)
-                    msg.setHeader(HEADER_RECALL_ID, recallId);
-                    
-                    String error = smppMsg.getHeader(SmppConstants.ERROR, String.class); // null or smsc specific
-                    
-//                    Date doneDate = smppMsg.getHeader(SmppConstants.DONE_DATE, Date.class); // when attained final state
-//                    Date submitDate = smppMsg.getHeader(SmppConstants.SUBMIT_DATE, Date.class); // when message was submitted / replaced
-//                    Integer submitted = smppMsg.getHeader(SmppConstants.SUBMITTED, Integer.class); // the number submitted when distribution list
-//                    Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
-                    
                     DeliveryReceiptState state = smppMsg.getHeader(SmppConstants.FINAL_STATUS, DeliveryReceiptState.class);
+                    String recallId = smppMsg.getHeader(SmppConstants.ID, String.class); // string (on send is a list)
+                    String error = smppMsg.getHeader(SmppConstants.ERROR, String.class); // null or smsc specific
+//                  Date doneDate = smppMsg.getHeader(SmppConstants.DONE_DATE, Date.class); // when attained final state
+//                  Date submitDate = smppMsg.getHeader(SmppConstants.SUBMIT_DATE, Date.class); // when message was submitted / replaced
+//                  Integer submitted = smppMsg.getHeader(SmppConstants.SUBMITTED, Integer.class); // the number submitted when distribution list
+//                  Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
                     
-                    LOG.info("Delivery receipt for recall-id {}: {} (error {})", recallId, state, error);
+                    if (recallId != null) {
+                        LOG.info("Delivery receipt for recall-id {}: {} (error {})", recallId, state, error);
+                        msg.setHeader(HEADER_RECALL_ID, recallId);
+                    }
+                    else {
+                        LOG.error("Delivery receipt without recall ID, will process but can't report back to client");
+                    }
                     
                     switch (state) {
                     case DeliveryReceiptState.ACCEPTD:

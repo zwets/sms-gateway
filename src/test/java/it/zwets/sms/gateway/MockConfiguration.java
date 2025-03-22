@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import it.zwets.sms.crypto.Vault;
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
+import it.zwets.sms.gateway.comp.CorrelationTable;
 import it.zwets.sms.gateway.comp.PayloadDecoder;
 import it.zwets.sms.gateway.comp.RequestProcessor;
 
@@ -85,9 +86,36 @@ public class MockConfiguration {
         return camelContext.getEndpoint("log:BACKEND_DUMMY_FOR_NOW");
     }
 
+    /**
+     * Mocks the incoming correlation IDs kafka topic.
+     * We simply use a direct endpoint and connected the CORREL_WRITE straight to it.
+     * @param camelContext
+     * @return direct endpoint connecting CORREL_WRITE and CORREL_READ
+     */
+    @Bean(Constants.ENDPOINT_CORREL_READ)
+    public Endpoint getCorrelReadTopic(CamelContext camelContext) {
+        return camelContext.getEndpoint("direct:mock-correl-topic");
+    }
+
+    /**
+     * Mocks the storable correction IDs kafka topic.
+     * We use the very same direct endpoint as the CORREL_READ, so things fo straight there.
+     * @param camelContext
+     * @return direct endpoint connecting CORREL_WRITE and CORREL_READ
+     */
+    @Bean(Constants.ENDPOINT_CORREL_WRITE)
+    public Endpoint correlWriteTopic(CamelContext camelContext) {
+        return camelContext.getEndpoint("direct:mock-correl-topic");
+    }
+
     @Bean(Constants.ENDPOINT_CLIENT_LOG)
     public Endpoint clientLogEndpoint(CamelContext camelContext) {
         return camelContext.getEndpoint("file://%s?fileExist=append".formatted(clientLogDir));
+    }
+
+    @Bean(Constants.BEAN_CORRELATION_TABLE)
+    public CorrelationTable getCorrelationTable() {
+        return new CorrelationTable();
     }
 
     /**

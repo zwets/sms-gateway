@@ -1,5 +1,8 @@
 package it.zwets.sms.gateway.comp;
 
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CLIENT_ID;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CORREL_ID;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_CORREL_REC;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_RECALL_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
@@ -12,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
+import it.zwets.sms.gateway.dto.CorrelationRecord;
 import it.zwets.sms.gateway.dto.VodaWaspResponse;
 
 /**
@@ -45,6 +49,13 @@ public class VodaWaspResponseProcessor implements Processor {
                 if (vodaRsp.Status.StatusCode() == 0) {
                     msg.setHeader(HEADER_SMS_STATUS, Constants.SMS_STATUS_SENT);
                     msg.setHeader(HEADER_RECALL_ID, vodaRsp.MessageID);
+                    
+                    // Add correlation record on header, will be recorded in table downstream
+                    msg.setHeader(HEADER_CORREL_REC, 
+                        new CorrelationRecord(
+                            vodaRsp.MessageID,
+                            msg.getHeader(HEADER_CLIENT_ID, String.class),
+                            msg.getHeader(HEADER_CORREL_ID, String.class)));
                 }
                 else {
                     LOG.error("Error response from Vodacom: {}", vodaRsp.toString());

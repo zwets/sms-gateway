@@ -25,10 +25,11 @@ import it.zwets.sms.gateway.SmsGatewayConfiguration.Constants;
 import it.zwets.sms.gateway.comp.ResponseProducer;
 import it.zwets.sms.gateway.dto.SendSmsRequest;
 import it.zwets.sms.gateway.dto.SmsMessage;
+import it.zwets.sms.gateway.routes.CorrelIdRoute;
 import it.zwets.sms.gateway.routes.SmsRouter;
 import it.zwets.sms.gateway.routes.TestClientRoute;
 
-@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, TestClientRoute.class, ResponseProducer.class} /* properties = specific properties */)
+@SpringBootTest(classes = {MockConfiguration.class, SmsRouter.class, CorrelIdRoute.class, TestClientRoute.class, ResponseProducer.class} /* properties = specific properties */)
 @CamelSpringBootTest
 @EnableAutoConfiguration
 @DisableJmx
@@ -357,7 +358,6 @@ public class SmsGatewayServiceTest {
 
     @Test
     public void happyFlowOnNoMarker() throws InterruptedException {
-
 
         response.expectedMessageCount(2);
 

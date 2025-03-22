@@ -26,7 +26,7 @@ public class SmsRouter extends RouteBuilder {
     
     private static final Logger LOG = LoggerFactory.getLogger(SmsRouter.class);
     
-    public static String RESPOND = "direct:respond";
+    public static final String RESPOND = "direct:respond";
 
     @EndpointInject(Constants.ENDPOINT_FRONTEND_REQUEST)
     private Endpoint frontIn;
@@ -76,15 +76,16 @@ public class SmsRouter extends RouteBuilder {
                     .to(backend);
                     
         from(RESPOND).routeId("response")
+            .to(CorrelIdRoute.CORREL_STORE)
             .process(responseProducer)
             .filter(header(HEADER_CLIENT_ID).isNotNull())
             .filter(header(HEADER_CORREL_ID).isNotNull())
-            .setHeader(Exchange.FILE_NAME, header(HEADER_CLIENT_ID).append(".log"))
             .setHeader(TSV_RECORD, simple("${body.asTsv()}"))
             .marshal().json()
             .to(frontOut)
+            .setHeader(Exchange.FILE_NAME, header(HEADER_CLIENT_ID).append(".log"))
             .setBody(header(TSV_RECORD))
             .to(clientLog);
-        
+
     }
 }

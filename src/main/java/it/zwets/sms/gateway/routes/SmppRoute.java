@@ -4,38 +4,45 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERRO
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_RECALL_ID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
-import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 import static org.apache.camel.LoggingLevel.DEBUG;
 import static org.apache.camel.LoggingLevel.ERROR;
 import static org.apache.camel.LoggingLevel.INFO;
 import static org.apache.camel.LoggingLevel.TRACE;
 
+import java.io.IOException;
+
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.smpp.SmppConstants;
 import org.apache.camel.component.smpp.SmppException;
+import org.jsmpp.extra.NegativeResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import it.zwets.sms.gateway.comp.SmppRequestProducer;
 import it.zwets.sms.gateway.comp.SmppInboundProcessor;
+import it.zwets.sms.gateway.comp.SmppRequestProducer;
+import it.zwets.sms.gateway.comp.SmppResponseProcessor;
 
 /**
- * Camel route to the SMPP backend (SMSC). * 
+ * Camel routes for submission to the SMPP backend (SMSC), and delivery notifications back. 
  */
 @Component
 public class SmppRoute extends RouteBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(SmppRoute.class);
 
-    public static String SMPP_ROUTE = "direct:smpp-route";
+    public static String SMPP_SUBMIT = "direct:smpp-submit";
 
     private static final String SMPP_INBOUND = "direct:smpp-inbound";
     
     @Autowired
     private SmppRequestProducer smppRequestProducer;
+
+    @Autowired
+    private SmppResponseProcessor smppResponseProcessor;
 
     @Autowired
     private SmppInboundProcessor smppInboundProcessor;
@@ -59,15 +66,30 @@ public class SmppRoute extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         
-        // Outbound Route
+        // Global exception handler, overridden in the submit route to not always send FAILED.
+        
+        onException(Throwable.class).routeId("smpp-route-exception")
+            .log(LoggingLevel.ERROR, LOG, "Exception in SMPP Route: ${exception}")
+            .handled(true)
+            .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
+            .setHeader(HEADER_ERROR_TEXT, simple("Exception while handling request: ${exception.message}"))
+            .to(SmsRouter.RESPOND);
 
-        from(SMPP_ROUTE).routeId("smpp-route")
+        // Outbound Route (we use it only for submitting but could be used for cancal too)
+        
+        from(SMPP_SUBMIT).routeId("smpp-submit")
 
-            // We send FAILED response when the Camel SMPP throws an exception, assuming this means
-            // that the SMS did not go out.  Note: there may be a nested JSMPP NegativeResponseException,
-            // whose getCommandStatus() gives detailed code as per SMPP specification 3.4, section 5.1.3.
+            // Use route-local exception handling so we respond FAILED when we know for sure
+            // that the send failed, but send no response if we don't know if it was sent.
+        
+            // The Camel SmppException and JSMPP NegativeResponseException indicate FAILED.
+            // Note: the latter has getCommandStatus() with detailed code as per SMPP 
+            // specification 3.4, section 5.1.3.  We log a stacktrace for now to help diag.
 
-            .onException(SmppException.class)
+            .onException(
+                    IOException.class,
+                    SmppException.class,
+                    NegativeResponseException.class)
                 .log(ERROR, LOG, "Send FAILED on exception from SMPP backend: ${exception} (cause: ${exception.cause}) ${exception.stacktrace}")
                 .handled(true)
                 .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_FAILED))
@@ -75,7 +97,7 @@ public class SmppRoute extends RouteBuilder {
                 .to(SmsRouter.RESPOND)
             .end()
                
-            // On all other exceptions we assume the message MAY have been sent so we do not respond
+            // All other exceptions MAY mean the message was sent so we send no response
             
             .onException(Throwable.class)
                 .log(ERROR, LOG, "Exception from SMPP backend: ${exception} ${exception.stacktrace}")
@@ -86,7 +108,7 @@ public class SmppRoute extends RouteBuilder {
 
             // Do the actual work
             
-            .log(DEBUG, LOG, "Entering the SMPP route")
+            .log(DEBUG, LOG, "Entering the SMPP submit route")
             .process(smppRequestProducer)
             .choice()
                 .when(header(HEADER_SMS_STATUS).isNotNull())
@@ -96,12 +118,13 @@ public class SmppRoute extends RouteBuilder {
                     .setHeader(SmppConstants.PASSWORD, constant(password))
                     .log(DEBUG, LOG, "Submitting SMS to SMSC")
                     .to(smppUri) // throws unless successful
-                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
-                    .setHeader(HEADER_RECALL_ID, regexReplaceAll(header(SmppConstants.ID), "^.*,", "")) // only last of list
+                    .process(smppResponseProcessor)
                     .log(INFO, LOG, "SMS was submitted, recall ID ${header.%s}".formatted(HEADER_RECALL_ID))
                     .to(SmsRouter.RESPOND);
             
-        // We have a TRX message centre and bind this route is by the messageReceiverRouteId
+        // Inbound route, set by messageReceiverRouteId to receive backend notifications.
+        // Our SMSC supports TRX (response in the same session) and this is set on our side
+        // by setting the messageReceiverRouteId to an inbound consumer.
 
         from(SMPP_INBOUND).routeId(SMPP_INBOUND)
             .log(TRACE, LOG, "SMPP inbound message: ${body}")

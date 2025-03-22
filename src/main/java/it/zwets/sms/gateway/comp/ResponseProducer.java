@@ -15,8 +15,10 @@ import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import it.zwets.sms.gateway.dto.CorrelationRecord;
 import it.zwets.sms.gateway.dto.SmsStatusResponse;
 
 /**
@@ -32,6 +34,9 @@ import it.zwets.sms.gateway.dto.SmsStatusResponse;
 public class ResponseProducer implements Processor {
     
     private static final Logger LOG = LoggerFactory.getLogger(ResponseProducer.class);
+
+    @Autowired
+    private CorrelationTable correlationTable;
     
     public void process(Exchange exchange) throws Exception {
         
@@ -44,14 +49,46 @@ public class ResponseProducer implements Processor {
         String recallId = msg.getHeader(HEADER_RECALL_ID, String.class);
         String errorText = msg.getHeader(HEADER_ERROR_TEXT, String.class);
 
-            // Make sure we return sane response
+        // If we don't have clientId and correlId but we do have recallId then
+        // the correlation table should hopefully have the mapping or receive
+        // it very soon (race condition: we can get here before correlation
+        // route has picked it up from the Kafka topic and added it to table).
+        
+        if (smsStatus == null) {
+            LOG.warn("Not producing response: SMS_STATUS header is not set");
+        }
+        else if (correlId == null || clientId == null) {
+            
+            if (recallId == null) {
+                LOG.error("No recall-id and no correl-id or client-id, no response will be sent to client");
+            }
+            else {
+                LOG.debug("Retrieving correl-id and client-id for recall-id {}", recallId);
+                
+                CorrelationRecord rec = correlationTable.fetch(recallId);
+        
+                if (rec == null) {
+                    LOG.debug("No correlation record found for recall ID {}, retrying in one second", recallId);
+                    Thread.sleep(1000);
+                    rec = correlationTable.fetch(recallId);
+                }
+                
+                if (rec != null) {
+                    LOG.debug("Found correlation record {} -> {}:{}", rec.recallId(), rec.clientId(), rec.correlId());
+                    clientId = rec.clientId();
+                    correlId = rec.correlId();
+                }
+                else {
+                    LOG.error("No correlation record found for recall ID {}, no response will be sent to client", recallId);
+                }
+            }
+        }
+
+        // Make sure we return sane response
         
         if (correlId != null && clientId != null && smsStatus != null) {
             LOG.debug("Producing response: {}:{}:{}:{}:{}:{}", clientId, correlId, timeStamp, smsStatus, recallId, errorText);
             msg.setBody(new SmsStatusResponse(clientId, correlId, timeStamp, smsStatus, recallId, errorText));
-        }
-        else {
-            LOG.warn("Not producing response: no client ID and correl ID present");
         }
     }
 }
