@@ -180,7 +180,7 @@ public class PkiCrypto {
             byte[] key = pkiDecrypt(privateKey, encKey);
 
             try (CipherInputStream cis = new CipherInputStream(is, getSymmetricCipher(Cipher.DECRYPT_MODE, key))) {
-                LOG.debug("Decrypting the payload");
+                LOG.trace("Decrypting the payload");
                 cis.transferTo(os);
                 cis.close();
             }
