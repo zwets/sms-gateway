@@ -75,8 +75,12 @@ public class ResponseProducer implements Processor {
                 
                 if (rec != null) {
                     LOG.debug("Found correlation record {} -> {}:{}", rec.recallId(), rec.clientId(), rec.correlId());
+
                     clientId = rec.clientId();
+                    msg.setHeader(HEADER_CLIENT_ID, clientId);
+
                     correlId = rec.correlId();
+                    msg.setHeader(HEADER_CORREL_ID, correlId);
                 }
                 else {
                     LOG.error("No correlation record found for recall ID {}, no response will be sent to client", recallId);

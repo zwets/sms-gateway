@@ -1,0 +1,19 @@
+#!/bin/bash
+
+export LC_ALL="C"
+set -euo pipefail
+
+TOPIC='correl-id'
+
+LIB_DIR="$(dirname "$(realpath "$0")")/lib"
+. "$LIB_DIR/settings.sh"
+
+USAGE="
+
+  Listen on the response topic ($TOPIC)"
+
+. "$LIB_DIR/kafka-lib.sh"
+
+(($# == 0)) || usage_exit
+
+kcat_listen
