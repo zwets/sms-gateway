@@ -9,6 +9,8 @@ import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 
+import java.util.Map;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
@@ -66,7 +68,7 @@ public class SmppInboundProcessor implements Processor {
 //                  Date submitDate = smppMsg.getHeader(SmppConstants.SUBMIT_DATE, Date.class); // when message was submitted / replaced
 //                  Integer submitted = smppMsg.getHeader(SmppConstants.SUBMITTED, Integer.class); // the number submitted when distribution list
 //                  Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
-                    
+
                     if (recallId != null) {
                         LOG.info("Delivery receipt for recall-id {}: {} (error {})", recallId, state, error);
                         msg.setHeader(HEADER_RECALL_ID, recallId);
@@ -75,6 +77,17 @@ public class SmppInboundProcessor implements Processor {
                         LOG.error("Delivery receipt without recall ID, will process but can't report back to client");
                     }
                     
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Optional parameters received");
+                        @SuppressWarnings("unchecked")
+                        Map<Short,Object> opts = smppMsg.getHeader(SmppConstants.OPTIONAL_PARAMETER, Map.class);
+                        if (opts != null) {
+                            for (Map.Entry<Short, Object> entry : opts.entrySet()) {
+                                LOG.debug(" - {} -> {}", entry.getKey(), entry.getValue());
+                            }
+                        }
+                    }
+
                     switch (state) {
                     case DeliveryReceiptState.ACCEPTD:
                     case DeliveryReceiptState.ENROUTE:
