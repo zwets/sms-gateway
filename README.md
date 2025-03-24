@@ -175,13 +175,8 @@ Settings for the steps below
     SRC_DIR=$PWD               # path to the unpacked repository
     TGT_DIR=/opt/sms-gateway   # installation directory
 
-Deployment requires the [sms-client](https://github.com/zwets/sms-client)
-tools for creating the vault (see that repo for details):
-
-    sudo tar --no-same-owner --no-same-perm -C /opt -xzf sms-client.tar.gz
-
-    # Convenient to add it to your PATH (in ~/.profile)
-    PATH="$PATH:/opt/sms-client/bin"
+Deployment requires [sms-client](https://github.com/zwets/sms-client)
+for creating the vault.  Install as described in that repository.
 
 Create the installation directory
 
@@ -202,7 +197,8 @@ Create config dir
 Create directory for per-client logs
 
     sudo mkdir /var/log/sms-gateway &&
-    sudo chown smeg:adm /var/log/sms-gateway
+    sudo chown smeg:adm /var/log/sms-gateway &&
+    sudo chmod 0750 /var/log/sms-gateway
 
 Add application properties to config (from the one in the repo)
 
@@ -244,15 +240,14 @@ Set vault location and password in application properties
 Create the Kafka topics
 
     BOOTSTRAP_SERVER='localhost:9092'
-    for TOPIC in send-sms sms-status; do
+    for TOPIC in send-sms sms-status correl-id; do
         kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" --create --if-not-exists --topic "${TOPIC}"
     done
 
 Add the systemd service by editing `etc/sms-gateway.service` and copying or
 symlinking into `/etc/systemd/system`
 
-    systemctl enable $PWD/etc/sms-gateway.service
-    systemctl start sms-gateway
+    systemctl enable --now $PWD/etc/sms-gateway.service
 
 To see and follow the logging output
 
@@ -262,12 +257,6 @@ To see and follow the logging output
 
 ## Implementation Notes
 
-### Wasp API
-
-The current release uses the Vodacom "Wasp" API, a simple http POST interface.
-Its route and processors are defined separately and will need to be overridden
-if you reuse this code.
-
 ### Failover & Retry
 
 Though it can be used on its own, the SMS Gateway was designed in tandem with
@@ -275,8 +264,10 @@ the SMS Scheduler.  The Scheduler manages long-running processes and has all
 facilities for dealing with backend failures, including scheduling retries.
 
 For this reason, the SMS Gateway is configured for "fail-fast" operation: when
-a backend connection is unavailable, it will attempt fail-over after a short
-timeout, and without retries.
+a backend WASP connection is unavailable, it will attempt fail-over after a short
+timeout and without retries.
+
+With the SMPP backend, it retries connecting every 12s @TODO@ consider aborting.
 
 Related Camel docs:
 
