@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Processes asynchronous delivery reports from the SMPP gateway.
  * 
- * Transforms the headers on the response coming from Camel SMPP to exchange 
+ * Transforms the headers on the response coming from Camel SMPP to exchange
  * headers that the SMS route will translate to a response to the client.
  * 
  * When the <code>process</code> method has completed, the message header
@@ -32,12 +32,12 @@ import org.slf4j.LoggerFactory;
  * set on entry.
  */
 public class SmppInboundProcessor implements Processor {
-    
+ 
     private static final Logger LOG = LoggerFactory.getLogger(SmppInboundProcessor.class);
-    
+ 
     @Override
     public void process(Exchange exchange) throws Exception {
-        
+
         Message msg = exchange.getIn();
 
         if (msg.getHeader(HEADER_SMS_STATUS) != null) {
@@ -53,9 +53,9 @@ public class SmppInboundProcessor implements Processor {
                 if (smppMsg == null) {
                     throw new Exception("Inbound SMPP message is not an SmppMessage");
                 }
-                    
+
                 if (!smppMsg.isDeliveryReceipt() ) {
-                    LOG.warn("Ignoring a {} message from the SMSC: {}", 
+                    LOG.warn("Ignoring a {} message from the SMSC: {}",
                             smppMsg.getHeader(SmppConstants.MESSAGE_TYPE), smppMsg.getBody());
                     exchange.setRouteStop(true);
                 }
@@ -70,13 +70,24 @@ public class SmppInboundProcessor implements Processor {
 //                  Integer delivered = smppMsg.getHeader(SmppConstants.DELIVERED, Integer.class); // the number delivered when distribution list
 
                     if (recallId != null) {
+
+                        if (recallId.startsWith("0")) {
+
+                            // HACK: the Voda SMSC sends back a 0-padded number, whereas the message ID it gave us
+                            // at time of submission was not zero-padded.  So here (despite the ID being a String
+                            // according to the SMPP spec) we strip the leading zeros.
+
+                            LOG.info("Hack: stripping leading zeros off the recall-id {}", recallId);
+                            recallId = recallId.replaceFirst("^0+", "");
+                        }
+
                         LOG.info("Delivery receipt for recall-id {}: {} (error {})", recallId, state, error);
                         msg.setHeader(HEADER_RECALL_ID, recallId);
                     }
                     else {
                         LOG.error("Delivery receipt without recall ID, will process but can't report back to client");
                     }
-                    
+
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Optional parameters received");
                         @SuppressWarnings("unchecked")
@@ -118,7 +129,7 @@ public class SmppInboundProcessor implements Processor {
                         LOG.error("Unknown DeliveryReceiptState: ", state);
                         msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
                         msg.setHeader(HEADER_ERROR_TEXT, "Unknown delivery state: %s: %s".formatted(state, error != null ? error : "(no error message)"));
-                    }                  
+                    }
                 }
             }
             catch (Exception e) {
