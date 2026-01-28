@@ -10,7 +10,7 @@
    </parent>
    <groupId>it.zwets</groupId>
    <artifactId>sms-gateway</artifactId>
-   <version>1.2.3-SNAPSHOT</version>
+   <version>1.2.3</version>
    <name>SMS Gateway</name>
    <description>Secure and Reliable SMS Gateway</description>
    <properties>
@@ -35,62 +35,62 @@
       </dependencies>
    </dependencyManagement>
    <dependencies>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-spring-boot-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-core-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-kafka-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-http-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-smpp-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-jackson-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-jacksonxml-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-direct-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-endpointdsl-starter</artifactId>
-   </dependency>
-   <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel</groupId>
-      <artifactId>camel-test-spring-junit5</artifactId>
-      <scope>test</scope>
-   </dependency>
       <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-jsonpath-starter</artifactId>
-      <scope>test</scope>
-   </dependency>
-   <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-mock-starter</artifactId>
-      <scope>test</scope>
-   </dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-spring-boot-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-core-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-kafka-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-http-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-smpp-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-jackson-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-jacksonxml-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-direct-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-endpointdsl-starter</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-test</artifactId>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel</groupId>
+         <artifactId>camel-test-spring-junit5</artifactId>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-jsonpath-starter</artifactId>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.camel.springboot</groupId>
+         <artifactId>camel-mock-starter</artifactId>
+         <scope>test</scope>
+      </dependency>
    </dependencies>
    <build>
       <plugins>
