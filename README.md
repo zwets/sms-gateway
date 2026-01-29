@@ -194,7 +194,8 @@ Create config dir
     sudo chown root:smeg $TGT_DIR/config &&
     sudo chmod 0750 $TGT_DIR/config
 
-Create directory for per-client logs
+Create directory for per-client logs (note that the application logs to
+Systemd journal: `journalctl -eu sms-gateway`)
 
     sudo mkdir /var/log/sms-gateway &&
     sudo chown smeg:adm /var/log/sms-gateway &&

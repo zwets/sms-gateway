@@ -80,7 +80,7 @@ public class SmsRouter extends RouteBuilder {
             .process(responseProducer)
             .filter(header(HEADER_CLIENT_ID).isNotNull())
             .filter(header(HEADER_CORREL_ID).isNotNull())
-            .setHeader(TSV_RECORD, simple("${body.asTsv()}"))
+            .setHeader(TSV_RECORD, body().method("asTsv"))
             .marshal().json()
             .to(frontOut)
             .setHeader(Exchange.FILE_NAME, header(HEADER_CLIENT_ID).append(".log"))

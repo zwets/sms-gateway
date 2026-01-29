@@ -98,7 +98,7 @@ public class MockConfiguration {
     }
 
     /**
-     * Mocks the storable correction IDs kafka topic.
+     * Mocks the storable correlation IDs kafka topic.
      * We use the very same direct endpoint as the CORREL_READ, so things fo straight there.
      * @param camelContext
      * @return direct endpoint connecting CORREL_WRITE and CORREL_READ
