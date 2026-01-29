@@ -35,7 +35,7 @@ import it.zwets.sms.gateway.routes.TestClientRoute;
 @DisableJmx
 //@ExcludeRoutes(SmsRouter.class)
 //@MockEndpoints(Constants.ENDPOINT_FRONTEND_RESPONSE) // not needed we override the whole bean (to not be Kafka) in the MockConfiguration
-public class SmsGatewayServiceTest {
+public class SmsGatewayTest {
 
     private static String CORREL_ID = "my-correl-id";
     private static String CLIENT_ID = "test";
