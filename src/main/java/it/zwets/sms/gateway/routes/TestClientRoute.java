@@ -3,7 +3,9 @@ package it.zwets.sms.gateway.routes;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_ERROR_TEXT;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.HEADER_SMS_STATUS;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_DELIVERED;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_EXPIRED;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_FAILED;
+import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_INVALID;
 import static it.zwets.sms.gateway.SmsGatewayConfiguration.Constants.SMS_STATUS_SENT;
 import static org.apache.camel.LoggingLevel.INFO;
 
@@ -73,6 +75,16 @@ public class TestClientRoute extends RouteBuilder {
                 .when(body().contains("S1D0"))
                     .log(INFO, LOG, "S1D0: responding SENT only")
                     .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_SENT))
+                    .to(NORMAL_RESPOND)
+                .when(body().contains("XEXP"))
+                    .log(INFO, LOG, "XEXP: responding EXPIRED only")
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_EXPIRED))
+                    .setHeader(HEADER_ERROR_TEXT, constant("Expired message (XEXP)"))
+                    .to(NORMAL_RESPOND)
+                .when(body().contains("XINV"))
+                    .log(INFO, LOG, "XINV: responding INVALID only")
+                    .setHeader(HEADER_SMS_STATUS, constant(SMS_STATUS_INVALID))
+                    .setHeader(HEADER_ERROR_TEXT, constant("Invalid message (XINV)"))
                     .to(NORMAL_RESPOND)
                 .when(body().contains("S1DX"))
                     .log(INFO, LOG, "S1DX: responding SENT first")

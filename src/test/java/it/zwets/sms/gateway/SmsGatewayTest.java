@@ -198,7 +198,7 @@ public class SmsGatewayTest {
 
         try {
             // This encrypts the payload with that of the 'fail' alias, which is in the built-in
-            // keystore in src/test/resources but not in src/main/resources.  When runnint the JUnit
+            // keystore in src/test/resources but not in src/main/resources.  When running the JUnit
             // test in Eclipse this seems to not always go right so we catch and ignore exceptions.
             SendSmsRequest req = new SendSmsRequest(CLIENT_ID, CORREL_ID, makeDeadline(1000), encryptPayload("fail", sms.asBytes()));
             template.sendBody(req);
@@ -250,6 +250,35 @@ public class SmsGatewayTest {
         response.assertIsSatisfied();
     }
 
+    @Test
+    public void oneResponseXEXP() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+
+        template.sendBody(makeSmsRequest("XEXP"));
+
+        response.assertIsSatisfied();
+    }
+
+    @Test
+    public void oneResponseXINV() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(1);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        response.message(0).jsonpath("$['error-text']").isNotNull();
+
+        template.sendBody(makeSmsRequest("XINV"));
+
+        response.assertIsSatisfied();
+    }
     @Test
     public void oneResponseS1D0() throws InterruptedException {
 
