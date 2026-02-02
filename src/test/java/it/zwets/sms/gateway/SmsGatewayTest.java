@@ -251,7 +251,7 @@ public class SmsGatewayTest {
     }
 
     @Test
-    public void oneResponseXEXP() throws InterruptedException {
+    public void oneResponseS0X1() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(1);
@@ -260,13 +260,32 @@ public class SmsGatewayTest {
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
         response.message(0).jsonpath("$['error-text']").isNotNull();
 
-        template.sendBody(makeSmsRequest("XEXP"));
+        template.sendBody(makeSmsRequest("S0X1"));
 
         response.assertIsSatisfied();
     }
 
     @Test
-    public void oneResponseXINV() throws InterruptedException {
+    public void twoResponseS1X1() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(2);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_EXPIRED);
+        response.message(1).jsonpath("$['error-text']").isNotNull();
+
+        template.sendBody(makeSmsRequest("S1X1"));
+
+        response.assertIsSatisfied();
+    }
+
+    @Test
+    public void oneResponseS0I1() throws InterruptedException {
 
         response.setAssertPeriod(100);
         response.expectedMessageCount(1);
@@ -275,10 +294,30 @@ public class SmsGatewayTest {
         response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
         response.message(0).jsonpath("$['error-text']").isNotNull();
 
-        template.sendBody(makeSmsRequest("XINV"));
+        template.sendBody(makeSmsRequest("S0I1"));
 
         response.assertIsSatisfied();
     }
+
+    @Test
+    public void twoResponseS1I1() throws InterruptedException {
+
+        response.setAssertPeriod(100);
+        response.expectedMessageCount(2);
+        response.message(0).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(0).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(0).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
+        response.message(0).jsonpath("$..['error-text'].length()").isEqualTo(0);
+        response.message(1).jsonpath("$['correl-id']").isEqualTo(CORREL_ID);
+        response.message(1).jsonpath("$['client-id']").isEqualTo(CLIENT_ID);
+        response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_INVALID);
+        response.message(1).jsonpath("$['error-text']").isNotNull();
+
+        template.sendBody(makeSmsRequest("S1I1"));
+
+        response.assertIsSatisfied();
+    }
+
     @Test
     public void oneResponseS1D0() throws InterruptedException {
 
@@ -295,7 +334,7 @@ public class SmsGatewayTest {
     }
 
     @Test
-    public void twoResponseS1DX() throws InterruptedException {
+    public void twoResponseS1F1() throws InterruptedException {
 
         response.expectedMessageCount(2);
 
@@ -308,7 +347,7 @@ public class SmsGatewayTest {
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_FAILED);
         response.message(1).jsonpath("$['error-text']").isNotNull();
 
-        template.sendBody(makeSmsRequest("S1DX"));
+        template.sendBody(makeSmsRequest("S1F1"));
 
         response.assertIsSatisfied();
     }
@@ -352,7 +391,7 @@ public class SmsGatewayTest {
     }
 
     @Test
-    public void failThenSentDXS1() throws InterruptedException {
+    public void failThenSentF1S1() throws InterruptedException {
 
         response.expectedMessageCount(2);
 
@@ -365,7 +404,7 @@ public class SmsGatewayTest {
         response.message(1).jsonpath("$['sms-status']").isEqualTo(Constants.SMS_STATUS_SENT);
         response.message(1).jsonpath("$..['error-text'].length()").isEqualTo(0);
 
-        template.sendBody(makeSmsRequest("DXS1"));
+        template.sendBody(makeSmsRequest("F1S1"));
 
         response.assertIsSatisfied();
     }
