@@ -11,4 +11,5 @@ cd "$(dirname "$(realpath "$0")")/.."
 }
 
 export SPRING_PROFILES_ACTIVE=test
-exec mvn --offline spring-boot:run
+#exec mvn --offline spring-boot:run
+exec mvn spring-boot:run
