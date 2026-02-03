@@ -111,6 +111,7 @@ Statuses have the following meaning:
  * `DELIVERED`: the SMSC reported the messages as delivered
  * `EXPIRED`: message was not sent because the deadline had passed
  * `INVALID`: the request received was invalid (client error)
+   or was deemed undeliverable by an SMSC downstream from ours.
  * `FAILED`: the SMS could not be sent (server/backend error)
 
 In the _happy flow_, the client should expect two responses for every request:
@@ -119,7 +120,7 @@ In the _happy flow_, the client should expect two responses for every request:
 If you receive `EXPIRED` or `INVALID`, you will not receive further responses,
 and can be certain that the message was not sent.  An `EXPIRED` request could
 be retried with a new deadline.  An `INVALID` request indicates a client error
-and hence cannot be submitted again.
+and hence will most likely not succeed on another attempt.
 
 When you receive `FAILED`, this means that _in all likelihood_ the message did
 not reach the recipient, and the gateway will not retry further.  The `FAILED`
@@ -127,10 +128,8 @@ may come after `SENT` and implies non-delivery.
 
 > In the current implementation you can expect to receive status updates in
 > a sensible order, and to eventually receive at least one status response,
-> but you should be prepared for out-of-order responses.
->
-> **Note** we do not yet have `DELIVERED` notifications from the backend,
-> and hence it may happen that you get no response at all.
+> but you should be prepared for out-of-order responses.  Not all backends
+> give `DELIVERED` notifications.
 
 
 ## Running
@@ -158,14 +157,16 @@ instead "loop back" with behaviour determined by the SMS body.  For instance,
 sending a message with `S1D0` in the body will return a `SENT` reply but no
 `DELIVERED`.  See the route in `TestClientRoute` for details.
 
-The unit tests in `src/test/java` exercise the `test` client routes.
+The unit tests in `src/test/java` exercise the `test` client routes, but it
+will also work in production (whenever the `test` client submits).  You can
+You can specify response delays in `application-*.properties`.
 
-The `test-client` directory has scripts for generating `send-sms` requests
+The `client` directory has scripts for generating `send-sms` requests
 and injecting them on the `send-sms` queue, generating "fake" reponses on
 the `sms-status` queue, and for monitoring the `send-sms` and `sms-status`
 queues.  (Requires installation of `kafkacat` or `kcat`, and `jq`.)
 
-See [test-client/README.md](test-client/README.md) for details.
+See [client/README.md](client/README.md) for details.
 
 
 ## Deployment
@@ -265,7 +266,7 @@ the SMS Scheduler.  The Scheduler manages long-running processes and has all
 facilities for dealing with backend failures, including scheduling retries.
 
 For this reason, the SMS Gateway is configured for "fail-fast" operation: when
-a backend WASP connection is unavailable, it will attempt fail-over after a short
+a backend connection is unavailable, it will attempt fail-over after a short
 timeout and without retries.
 
 With the SMPP backend, it retries connecting every 12s @TODO@ consider aborting.
@@ -292,7 +293,7 @@ Related Camel docs:
 #### Licence
 
 sms-gateway - Backend for the SMS Scheduler  
-Copyright (C) 2023  Marco van Zwetselaar
+Copyright (C) 2023-2025  Marco van Zwetselaar
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
