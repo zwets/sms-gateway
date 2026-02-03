@@ -121,6 +121,7 @@ public class SmppInboundProcessor implements Processor {
                     case DeliveryReceiptState.UNDELIV:
                         msg.setHeader(HEADER_ERROR_TEXT, "Message was undeliverable: %s".formatted(error != null ? error : "(no error message)"));
                         msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_FAILED);
+                        break;
                     case DeliveryReceiptState.REJECTD:
                         msg.setHeader(HEADER_ERROR_TEXT, "SMSC rejects message: %s".formatted(error != null ? error : "(no error message)"));
                         msg.setHeader(HEADER_SMS_STATUS, SMS_STATUS_INVALID);
