@@ -74,6 +74,6 @@ public class CorrelIdRoute extends RouteBuilder {
             .log(DEBUG, LOG, "Writing correlation record for ${header.%s} to topic".formatted(HEADER_RECALL_ID))
             .to(correlWrite)
             .setBody(header(STASH))
-            .removeProperty(STASH);
+            .removeHeader(STASH);
     }
 }
