@@ -181,7 +181,7 @@ public class SmppInboundProcessor implements Processor {
                 if (val instanceof byte[]) {
                     val = HexUtil.convertHexStringToString(HexUtil.convertBytesToHexString((byte[]) val));
                 }
-                LOG.debug(" - 0x%04x -> {})".formatted(entry.getKey()), val);
+                LOG.debug(" - 0x%04x -> {}".formatted(entry.getKey()), val);
             }
         }
     }
