@@ -34,7 +34,7 @@ public class SmppRoute extends RouteBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(SmppRoute.class);
 
-    public static String SMPP_SUBMIT = "direct:smpp-submit";
+    public static final String SMPP_SUBMIT = "direct:smpp-submit";
 
     private static final String SMPP_INBOUND = "direct:smpp-inbound";
     

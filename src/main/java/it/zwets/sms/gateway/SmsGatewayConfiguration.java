@@ -198,9 +198,9 @@ public class SmsGatewayConfiguration {
      * Defines string constants (field names etc)
      */
     public static final class Constants {
-        
+
         // Our endpoint names in the registry
-        
+
         public static final String ENDPOINT_FRONTEND_REQUEST = "frontEndRequest";
         public static final String ENDPOINT_FRONTEND_RESPONSE = "frontEndResponse";
         public static final String ENDPOINT_BACKEND_REQUEST = "backEndRequest";
@@ -208,9 +208,9 @@ public class SmsGatewayConfiguration {
         public static final String ENDPOINT_CORREL_WRITE = "correlWrite";
         public static final String ENDPOINT_CLIENT_LOG = "clientLog";
         public static final String BEAN_CORRELATION_TABLE = "correlationTable";
-        
+
         // Incoming message fields
-        
+
         public static final String IN_FIELD_CLIENT_ID = "client-id";
         public static final String IN_FIELD_CORREL_ID = "correl-id";
         public static final String IN_FIELD_DEADLINE = "deadline";
@@ -226,25 +226,34 @@ public class SmsGatewayConfiguration {
         public static final String HEADER_SMS_STATUS = "smsStatus";
         public static final String HEADER_ERROR_TEXT = "errorText";
 
-        // Outgoing message fields
+        // Outgoing status message fields
         
         public static final String OUT_FIELD_CLIENT_ID = "client-id";
         public static final String OUT_FIELD_CORREL_ID = "correl-id";
-        public static final String OUT_FIELD_TIMESTAMP = "timestamp";
-        public static final String OUT_FIELD_RECALL_ID = "recall-id";
         public static final String OUT_FIELD_SMS_STATUS = "sms-status";
         public static final String OUT_FIELD_ERROR_TEXT = "error-text";
+
+        // Outgoing shared fields
+
+        public static final String OUT_FIELD_TIMESTAMP = "timestamp";
+        public static final String OUT_FIELD_RECALL_ID = "recall-id";
+
+        // Outgoing inbound SMS fields
         
+        public static final String OUT_FIELD_SENDER = "sender";
+        public static final String OUT_FIELD_RECIPIENT = "recipient";
+        public static final String OUT_FIELD_BODY = "recipient";
+
         // Values for OUT_FIELD_SMS_STATUS
-        
+ 
         public static final String SMS_STATUS_SENT = "SENT";
         public static final String SMS_STATUS_DELIVERED = "DELIVERED";
         public static final String SMS_STATUS_EXPIRED = "EXPIRED";
         public static final String SMS_STATUS_FAILED = "FAILED";        // failed now but may go
         public static final String SMS_STATUS_INVALID = "INVALID";      // will never go
-        
+ 
         // SMS headers
-        
+ 
         public static final String SMS_HEADER_TO = "To";
         public static final String SMS_HEADER_SENDER = "Sender";
     }
